@@ -1,0 +1,14 @@
+#!/bin/sh
+
+. `dirname $0`/functions.sh
+
+if [ -z "${LOG_FILE}" ]; then
+    send_insufficient_metadata_response
+    exit 0
+fi
+
+env >> "${LOG_FILE}"
+send_ok_response
+
+exit 0
+

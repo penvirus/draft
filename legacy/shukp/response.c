@@ -1,0 +1,21 @@
+#include <stdio.h>
+#include "response.h"
+
+const char * response_code2message(int code) {
+	switch(code) {
+	/* 1XX - Continue */
+	case RESPONSE_CODE_CONTINUE: return RESPONSE_MESSAGE_CONTINUE;
+	case RESPONSE_CODE_SENDING: return RESPONSE_MESSAGE_SENDING;
+	/* 2XX - Positive */
+	case RESPONSE_CODE_OK: return RESPONSE_MESSAGE_OK;
+	case RESPONSE_CODE_WARNING: return RESPONSE_MESSAGE_WARNING;
+	/* 4XX - Negative */
+	case RESPONSE_CODE_REQUEST_REJECTED: return RESPONSE_MESSAGE_REQUEST_REJECTED;
+	case RESPONSE_CODE_BAD_REQUEST: return RESPONSE_MESSAGE_BAD_REQUEST;
+	case RESPONSE_CODE_INSUFFICIENT_METADATA: return RESPONSE_MESSAGE_INSUFFICIENT_METADATA;
+	/* 5XX - Internal Error */
+	case RESPONSE_CODE_INTERNAL_ERROR: return RESPONSE_MESSAGE_INTERNAL_ERROR;
+	default: return NULL;
+	}
+}
+

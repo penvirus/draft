@@ -1,0 +1,32 @@
+#!/bin/sh
+
+. `dirname $0`/functions.sh
+
+if [ -z "${USER_NAME}" -o -z "${MODULE_NAME}" ]; then
+	send_insufficient_metadata_response
+	exit 0
+fi
+
+if [ -n "$(grep -e "^${USER_NAME}:" /etc/passwd)" ]; then
+	send_internal_error_response "already registered"
+	exit 0
+fi
+
+useradd -M ${USER_NAME} >/dev/null 2>&1
+if [ $? -ne 0 ]; then
+	send_internal_error_response "useradd error"
+	exit 0
+fi
+
+mkdir -p /home/${USER_NAME}
+mkdir -p /home/${USER_NAME}/.ssh
+ssh-keygen -N '' -f /home/${USER_NAME}/.ssh/id_rsa >/dev/null 2>&1
+mv -f /home/${USER_NAME}/.ssh/id_rsa.pub /home/${USER_NAME}/.ssh/authorized_keys
+chmod -f 600 /home/${USER_NAME}/.ssh/authorized_keys
+chown -R ${USER_NAME}:${USER_NAME} /home/${USER_NAME}
+
+send_sending_response `ls -l /home/${USER_NAME}/.ssh/id_rsa | awk '{print $5}'`
+cat /home/${USER_NAME}/.ssh/id_rsa
+
+exit 0
+
