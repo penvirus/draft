@@ -9,6 +9,8 @@ extract_kernel:
 
 kernel: extract_kernel
 	$(start)
+	@cp config $(DIR_WORKING)/linux-$(KERNEL_VERSION)/.config
+	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION); make oldconfig; make bzImage; make modules;
 	$(end)
 
 clean:
