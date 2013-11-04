@@ -1,14 +1,8 @@
-define making-start
-    @echo ">>> making $@"
-endef
+include common.mk
 
-define making-end
-    @echo ">>> making $@ done"
-endef
-
-DIR_3RD_PARTY = $(shell pwd)/3rd_party
-DIR_WORKING = $(shell pwd)/build
-DIR_DIST = $(shell pwd)/dist
+DIR_3RD_PARTY := $(shell pwd)/3rd_party
+DIR_WORKING := $(shell pwd)/build
+DIR_DIST := $(shell pwd)/dist
 
 SUBDIRS = kernel system cdiso
 

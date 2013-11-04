@@ -1,4 +1,6 @@
-GRUB_VERSION = 2.00
+include ../common.mk
+
+GRUB_VERSION := 2.00
 
 APPS += grub
 

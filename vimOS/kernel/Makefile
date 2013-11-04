@@ -1,14 +1,16 @@
-KERNEL_VERSION = 2.6.34
+include ../common.mk
+
+KERNEL_VERSION := 2.6.34
 
 all: kernel
 
 extract_kernel:
-	$(start)
+	$(making-start)
 	@cd $(DIR_3RD_PARTY); tar Jxf linux-$(KERNEL_VERSION).tar.xz -C $(DIR_WORKING)
-	$(end)
+	$(making-end)
 
 kernel: extract_kernel
-	$(start)
+	$(making-start)
 	@cp config $(DIR_WORKING)/linux-$(KERNEL_VERSION)/.config
 	@cp install.sh $(DIR_WORKING)/linux-$(KERNEL_VERSION)/arch/x86/boot/
 	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION); \
@@ -18,10 +20,10 @@ kernel: extract_kernel
 	    make INSTALL_MOD_PATH=$(DIR_DIST) modules_install && \
 	    make INSTALL_PATH=$(DIR_DIST) install
 	@rm -f $(DIR_DIST)/lib/modules/$(KERNEL_VERSION)-VimOS/{source,build}
-	$(end)
+	$(making-end)
 
 clean:
-	$(start)
-	$(end)
+	$(making-start)
+	$(making-end)
 
 .PHONY: all clean
