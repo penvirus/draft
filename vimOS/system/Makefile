@@ -7,7 +7,7 @@ APPS += grub
 all:
 	@mkdir -p $(DIR_DIST)/rootfs/
 	@for app in $(APPS); do \
-	    make $$app; \
+	    $(MAKE) $$app; \
 	done
 
 grub:

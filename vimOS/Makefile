@@ -1,8 +1,9 @@
 include common.mk
 
-DIR_3RD_PARTY := $(shell pwd)/3rd_party
-DIR_WORKING := $(shell pwd)/build
-DIR_DIST := $(shell pwd)/dist
+DIR_3RD_PARTY 	:= $(shell pwd)/3rd_party
+DIR_WORKING 	:= $(shell pwd)/build
+DIR_DIST 	:= $(shell pwd)/dist
+export
 
 SUBDIRS = kernel system cdiso
 
@@ -15,19 +16,19 @@ pre_build:
 build: pre_build
 	$(making-start)
 	@for sub in $(SUBDIRS); do \
-	    make $$sub; \
+	    $(MAKE) $$sub; \
 	done
 	$(making-end)
 
 $(SUBDIRS): pre_build
 	$(making-start)
-	    @make DIR_3RD_PARTY=$(DIR_3RD_PARTY) DIR_WORKING=$(DIR_WORKING) DIR_DIST=$(DIR_DIST) -C $@; \
+	$(MAKE) -C $@
 	$(making-end)
 
 clean:
 	$(making-start)
 	@for sub in $(SUBDIRS); do \
-	    make DIR_3RD_PARTY=$(DIR_3RD_PARTY) DIR_WORKING=$(DIR_WORKING) DIR_DIST=$(DIR_DIST) -C $$sub $@; \
+	    $(MAKE) -C $$sub $@; \
 	done
 	@rm -rf $(DIR_WORKING)
 	@rm -rf $(DIR_DIST)
