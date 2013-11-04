@@ -10,7 +10,7 @@ DIR_3RD_PARTY = $(shell pwd)/3rd_party
 DIR_WORKING = $(shell pwd)/build
 DIR_DIST = $(shell pwd)/dist
 
-SUBDIRS = kernel system live-cd
+SUBDIRS = kernel system cdiso
 
 all: build
 
