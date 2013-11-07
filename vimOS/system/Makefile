@@ -2,7 +2,7 @@ include ../common.mk
 
 GRUB_VERSION := 2.00
 
-APPS += grub
+#APPS += grub
 
 all:
 	@mkdir -p $(DIR_DIST)/rootfs/

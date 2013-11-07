@@ -1,0 +1,7 @@
+?09a?07 - Boot A:
+?09b?07 - Boot first HDD
+?09c?07 - Boot next device
+
+?091?07 - ?0fPC-DOS?07
+?092?07 - Darik's Boot and Nuke
+?093?07 - memtest86

@@ -5,7 +5,7 @@ DIR_WORKING 	:= $(shell pwd)/build
 DIR_DIST 	:= $(shell pwd)/dist
 export
 
-SUBDIRS = kernel system cdiso
+SUBDIRS = system kernel cdiso
 
 all: build
 
