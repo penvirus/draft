@@ -9,6 +9,8 @@ kernel:
 	@cp install.sh $(DIR_WORKING)/linux-$(KERNEL_VERSION)/arch/x86/boot/
 	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION)/; \
 	    make oldconfig && \
+	    make prepare && \
+	    make modules_prepare && \
 	    make -j4 bzImage && \
 	    make -j4 modules && \
 	    make INSTALL_MOD_PATH=$(DIR_DIST) modules_install && \

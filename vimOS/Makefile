@@ -3,7 +3,9 @@ include common.mk
 DIR_3RD_PARTY 	:= $(shell pwd)/3rd_party
 DIR_WORKING 	:= $(shell pwd)/build
 DIR_DIST 	:= $(shell pwd)/dist
-export
+export DIR_3RD_PARTY
+export DIR_WORKING
+export DIR_DIST
 
 SUBDIRS = kernel system cdiso
 
