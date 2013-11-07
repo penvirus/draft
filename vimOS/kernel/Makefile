@@ -2,18 +2,12 @@ include ../common.mk
 
 KERNEL_VERSION := 2.6.34
 
-all: kernel
-
-extract_kernel:
+kernel:
 	$(making-start)
 	@cd $(DIR_3RD_PARTY); tar Jxf linux-$(KERNEL_VERSION).tar.xz -C $(DIR_WORKING)
-	$(making-end)
-
-kernel: extract_kernel
-	$(making-start)
-	@cp config $(DIR_WORKING)/linux-$(KERNEL_VERSION)/.config
+	@cp -f config $(DIR_WORKING)/linux-$(KERNEL_VERSION)/.config
 	@cp install.sh $(DIR_WORKING)/linux-$(KERNEL_VERSION)/arch/x86/boot/
-	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION); \
+	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION)/; \
 	    make oldconfig && \
 	    make -j4 bzImage && \
 	    make -j4 modules && \
@@ -26,4 +20,4 @@ clean:
 	$(making-start)
 	$(making-end)
 
-.PHONY: all clean
+.PHONY: all clean kernel

@@ -5,13 +5,19 @@ DIR_WORKING 	:= $(shell pwd)/build
 DIR_DIST 	:= $(shell pwd)/dist
 export
 
-SUBDIRS = system kernel cdiso
+SUBDIRS = kernel system cdiso
 
 all: build
 
 pre_build:
 	@mkdir -p $(DIR_WORKING)
 	@mkdir -p $(DIR_DIST)
+	@mkdir -p $(DIR_DIST)/rootfs/
+	@mkdir -p $(DIR_DIST)/rootfs/boot/
+	@mkdir -p $(DIR_DIST)/rootfs/bin/
+	@mkdir -p $(DIR_DIST)/rootfs/etc/
+	@mkdir -p $(DIR_DIST)/rootfs/usr/
+	@mkdir -p $(DIR_DIST)/rootfs/home/
 
 build: pre_build
 	$(making-start)

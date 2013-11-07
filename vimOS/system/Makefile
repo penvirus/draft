@@ -5,7 +5,6 @@ GRUB_VERSION := 2.00
 #APPS += grub
 
 all:
-	@mkdir -p $(DIR_DIST)/rootfs/
 	@for app in $(APPS); do \
 	    $(MAKE) $$app; \
 	done
