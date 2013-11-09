@@ -3,16 +3,15 @@ include ../common.mk
 SYSLINUX := syslinux-6.02
 
 all: $(SYSLINUX)
-	@mkdir -p $(DIR_DIST)/rootfs/isolinux
-	@cp $(DIR_WORKING)/$(SYSLINUX)/bios/core/isolinux.bin $(DIR_DIST)/rootfs/isolinux/
-	@cp isolinux.cfg boot.txt $(DIR_DIST)/rootfs/isolinux/
-	@mkdir -p $(DIR_DIST)/rootfs/images
-	@mkdir -p $(DIR_DIST)/rootfs/kernel
-	@cp $(DIR_WORKING)/$(SYSLINUX)/bios/memdisk/memdisk $(DIR_DIST)/rootfs/kernel
+	@mkdir -p $(DIR_DIST)/cdiso_root
+	@cp $(DIR_WORKING)/$(SYSLINUX)/bios/core/isolinux.bin $(DIR_DIST)/cdiso_root/
+	@cp isolinux.cfg boot.txt $(DIR_DIST)/cdiso_root/
+	@cp $(DIR_DIST)/rootfs/boot/vmlinuz $(DIR_DIST)/cdiso_root/
+	@cp $(DIR_DIST)/initrd.gz $(DIR_DIST)/cdiso_root/
 	@mkisofs -o $(DIR_DIST)/VimOS.iso \
-	    -b isolinux/isolinux.bin -c isolinux/boot.cat \
+	    -b isolinux.bin -c boot.cat \
 	    -no-emul-boot -boot-load-size 4 -boot-info-table \
-	    $(DIR_DIST)/rootfs
+	    $(DIR_DIST)/cdiso_root
 
 $(SYSLINUX):
 	$(making-start)

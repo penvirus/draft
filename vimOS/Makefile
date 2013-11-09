@@ -7,7 +7,7 @@ export DIR_3RD_PARTY
 export DIR_WORKING
 export DIR_DIST
 
-SUBDIRS = kernel system cdiso
+SUBDIRS = system kernel cdiso
 
 all: build
 
@@ -19,7 +19,8 @@ pre_build:
 	@mkdir -p $(DIR_DIST)/rootfs/bin/
 	@mkdir -p $(DIR_DIST)/rootfs/etc/
 	@mkdir -p $(DIR_DIST)/rootfs/usr/
-	@mkdir -p $(DIR_DIST)/rootfs/home/
+	@mkdir -p $(DIR_DIST)/rootfs/lib/
+	@mkdir -p $(DIR_DIST)/rootfs/lib64/
 
 build: pre_build
 	$(making-start)
