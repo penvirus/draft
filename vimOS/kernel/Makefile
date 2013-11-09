@@ -2,7 +2,7 @@ include ../common.mk
 
 KERNEL_VERSION := 2.6.34
 
-all: initrd
+all: kernel initrd
 
 kernel:
 	$(making-start)
@@ -29,7 +29,7 @@ initrd:
 	$(making-end)
 
 clean:
-	$(making-start)
-	$(making-end)
+	@rm -f kernel initrd
+	@rm -f *.making
 
 .PHONY: all clean kernel initrd

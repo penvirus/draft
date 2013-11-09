@@ -20,7 +20,6 @@ $(SYSLINUX):
 	$(making-end)
 
 clean:
-	$(making-start)
-	$(making-end)
+	@rm -f *.making
 
 .PHONY: all clean

@@ -9,7 +9,7 @@ export DIR_DIST
 
 SUBDIRS = system kernel cdiso
 
-all: build
+all: $(SUBDIRS)
 
 pre_build:
 	@mkdir -p $(DIR_WORKING)
@@ -22,25 +22,14 @@ pre_build:
 	@mkdir -p $(DIR_DIST)/rootfs/lib/
 	@mkdir -p $(DIR_DIST)/rootfs/lib64/
 
-build: pre_build
-	$(making-start)
-	@for sub in $(SUBDIRS); do \
-	    $(MAKE) $$sub; \
-	done
-	$(making-end)
-
 $(SUBDIRS): pre_build
-	$(making-start)
 	$(MAKE) -C $@
-	$(making-end)
 
 clean:
-	$(making-start)
 	@for sub in $(SUBDIRS); do \
 	    $(MAKE) -C $$sub $@; \
 	done
 	@rm -rf $(DIR_WORKING)
 	@rm -rf $(DIR_DIST)
-	$(making-end)
 
 .PHONY: all clean
