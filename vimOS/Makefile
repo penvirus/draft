@@ -15,6 +15,7 @@ pre_build:
 	@mkdir -p $(DIR_WORKING)
 	@mkdir -p $(DIR_DIST)
 	@mkdir -p $(DIR_DIST)/rootfs/
+	@mkdir -p $(DIR_DIST)/rootfs/dev/
 	@mkdir -p $(DIR_DIST)/rootfs/boot/
 	@mkdir -p $(DIR_DIST)/rootfs/bin/
 	@mkdir -p $(DIR_DIST)/rootfs/etc/
