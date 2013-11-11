@@ -7,7 +7,7 @@ export DIR_3RD_PARTY
 export DIR_WORKING
 export DIR_DIST
 
-SUBDIRS = system kernel cdiso
+SUBDIRS = kernel system cdiso
 
 all: $(SUBDIRS)
 
