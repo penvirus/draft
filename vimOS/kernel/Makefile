@@ -2,7 +2,11 @@ include ../common.mk
 
 KERNEL_VERSION := 2.6.34
 
-all: kernel initrd
+all: kernel
+	@$(DIR_WORKING)/linux-$(KERNEL_VERSION)/usr/gen_init_cpio devlist.txt > $(DIR_DIST)/initrd.cpio
+	@cd $(DIR_DIST)/rootfs; find . | cpio --append -c -a -o -F $(DIR_DIST)/initrd.cpio
+	@gzip -9 -c -f $(DIR_DIST)/initrd.cpio > $(DIR_DIST)/initrd.gz
+	@gzip -t $(DIR_DIST)/initrd.gz
 
 kernel:
 	$(making-start)
@@ -20,16 +24,8 @@ kernel:
 	@rm -f $(DIR_DIST)/lib/modules/$(KERNEL_VERSION)-VimOS/{source,build}
 	$(making-end)
 
-initrd:
-	$(making-start)
-	@$(DIR_WORKING)/linux-$(KERNEL_VERSION)/usr/gen_init_cpio devlist.txt > $(DIR_DIST)/initrd.cpio
-	@cd $(DIR_DIST)/rootfs; find . | cpio --append -c -a -o -F $(DIR_DIST)/initrd.cpio
-	@gzip -9 -c -f $(DIR_DIST)/initrd.cpio > $(DIR_DIST)/initrd.gz
-	@gzip -t $(DIR_DIST)/initrd.gz
-	$(making-end)
-
 clean:
-	@rm -f kernel initrd
+	@rm -f kernel
 	@rm -f *.making
 
 .PHONY: all clean kernel initrd
