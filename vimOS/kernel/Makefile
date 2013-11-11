@@ -28,4 +28,4 @@ clean:
 	@rm -f kernel
 	@rm -f *.making
 
-.PHONY: all clean kernel initrd
+.PHONY: all clean

@@ -26,9 +26,9 @@ $(GLIBC):
 	$(making-start)
 	@tar Jxf $(DIR_3RD_PARTY)/$(GLIBC).tar.xz -C $(DIR_WORKING)
 	@mkdir -p $(DIR_WORKING)/$(GLIBC)/tmp_build
-	@cd $(DIR_WORKING)/$(GLIBC)/tmp_build; ../configure --prefix=$(DIR_DIST)/rootfs \
-	    --enable-stackguard-randomization --enable-all-warnings
-	@cd $(DIR_WORKING)/$(GLIBC); make install
+	@cd $(DIR_WORKING)/$(GLIBC)/tmp_build; ../configure --prefix=$(DIR_DIST)/rootfs --libdir=$(DIR_DIST)/rootfs/lib64 \
+	    --enable-stackguard-randomization --enable-all-warnings \
+	    && make all && make install
 	$(making-end)
 
 $(BASH): $(GLIBC)
@@ -45,7 +45,7 @@ $(BASH): $(GLIBC)
 	$(making-end)
 
 clean:
-	@rm -f $(BASH)
+	@rm -f $(PKGS)
 	@rm -f *.making
 
 .PHONY: all clean
