@@ -14,38 +14,34 @@ BASH := bash-4.2
 
 GRUB_VERSION := 2.00
 
-PKGS += $(BINUTILS)
-PKGS += $(GCC)
-PKGS += $(GLIBC)
+#PKGS += $(BINUTILS)
+#PKGS += $(GCC)
+#PKGS += $(GLIBC)
 #PKGS += $(BASH)
 
-all:
+all: toolchain
 	@cp init $(DIR_DIST)/rootfs/
 	@chmod 775 $(DIR_DIST)/rootfs/init
 	@for pkg in $(PKGS); do \
 	    $(MAKE) $$pkg || exit 1; \
 	done
 
-$(BINUTILS):
+toolchain:
 	$(making-start)
+	@mkdir -p $(DIR_WORKING)/cross-dist
+	# cross-linker
 	@tar jxf $(DIR_3RD_PARTY)/$(BINUTILS).tar.bz2 -C $(DIR_WORKING)
 	@mkdir -p $(DIR_WORKING)/$(BINUTILS)/binutils-build
 	@cd $(DIR_WORKING)/$(BINUTILS)/binutils-build; ../configure \
-	    --prefix=$(DIR_DIST)/rootfs/usr \
-	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
-	    --localstatedir=$(DIR_DIST)/rootfs/var \
-	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
-	    --target=$(CONFIGURE_HOST) \
+	    --prefix=$(DIR_WORKING)/cross-dist \
+	    --sysconfdir=$(DIR_WORKING)/cross-dist/etc \
+	    --localstatedir=$(DIR_WORKING)/cross-dist/var \
+	    --libdir=$(DIR_WORKING)/cross-dist/lib64 \
+	    --target=$(CROSS_COMPILE_TARGET) \
 	    --enable-ld=yes \
-	    --disable-werror \
-	    --enable-host-shared \
-	    --with-build-sysroot=$(DIR_DIST)/rootfs \
 	    --disable-nls \
 	    && make && make install
-	$(making-end)
-
-$(GCC): $(BINUTILS)
-	$(making-start)
+	# cross-compiler
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)/$(GCC)
 	@mv $(DIR_WORKING)/$(GCC)/$(MPFR) $(DIR_WORKING)/$(GCC)/mpfr
@@ -55,11 +51,11 @@ $(GCC): $(BINUTILS)
 	@mv $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
 	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
 	@cd $(DIR_WORKING)/$(GCC)/gcc-build; ../configure \
-	    --prefix=$(DIR_DIST)/rootfs/usr \
-	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
-	    --localstatedir=$(DIR_DIST)/rootfs/var \
-	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
-	    --target=$(CONFIGURE_HOST) \
+	    --prefix=$(DIR_WORKING)/cross-dist \
+	    --sysconfdir=$(DIR_WORKING)/cross-dist/etc \
+	    --localstatedir=$(DIR_WORKING)/cross-dist/var \
+	    --libdir=$(DIR_WORKING)/cross-dist/lib64 \
+	    --target=$(CROSS_COMPILE_TARGET) \
 	    --with-build-sysroot=$(DIR_DIST)/rootfs \
 	    --with-newlib \
 	    --without-headers \
