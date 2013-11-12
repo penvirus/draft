@@ -6,6 +6,9 @@ kernel:
 	@cp -f config $(DIR_WORKING)/linux-$(KERNEL_VERSION)/.config
 	@cp install.sh $(DIR_WORKING)/linux-$(KERNEL_VERSION)/arch/x86/boot/
 	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION)/; \
+	    make headers_check && \
+	    make INSTALL_HDR_PATH=$(DIR_DIST)/rootfs/usr headers_install
+	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION)/; \
 	    make oldconfig && \
 	    make prepare && \
 	    make modules_prepare && \
