@@ -7,7 +7,7 @@ kernel:
 	@cp install.sh $(DIR_WORKING)/linux-$(KERNEL_VERSION)/arch/x86/boot/
 	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION)/; \
 	    make headers_check && \
-	    make INSTALL_HDR_PATH=$(DIR_DIST)/rootfs/usr headers_install
+	    make INSTALL_HDR_PATH=$(DIR_DIST)/rootfs/usr ARCH=x86 headers_install
 	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION)/; \
 	    make oldconfig && \
 	    make prepare && \

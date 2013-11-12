@@ -15,8 +15,9 @@ BASH := bash-4.2
 GRUB_VERSION := 2.00
 
 PKGS += $(BINUTILS)
+PKGS += $(GCC)
 PKGS += $(GLIBC)
-PKGS += $(BASH)
+#PKGS += $(BASH)
 
 all:
 	@cp init $(DIR_DIST)/rootfs/
@@ -28,12 +29,16 @@ all:
 $(BINUTILS):
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(BINUTILS).tar.bz2 -C $(DIR_WORKING)
-	@cd $(DIR_WORKING)/$(BINUTILS); ./configure \
+	@mkdir -p $(DIR_WORKING)/$(BINUTILS)/binutils-build
+	@cd $(DIR_WORKING)/$(BINUTILS)/binutils-build; ../configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/rootfs/var \
-	    --libdir=$(DIR_DIST)/rootfs/lib64 \
-	    --target=x86_64-VimOS-linux-gnu \
+	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
+	    --target=$(CONFIGURE_HOST) \
+	    --enable-ld=yes \
+	    --disable-werror \
+	    --enable-host-shared \
 	    --with-build-sysroot=$(DIR_DIST)/rootfs \
 	    --disable-nls \
 	    && make && make install
@@ -46,15 +51,15 @@ $(GCC): $(BINUTILS)
 	@mv $(DIR_WORKING)/$(GCC)/$(MPFR) $(DIR_WORKING)/$(GCC)/mpfr
 	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$(GCC)
 	@mv $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
-	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -c $(DIR_WORKING)/$(GCC)
+	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$(GCC)
 	@mv $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
 	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
-	@cd $(DIR_WORKING)/$(GCC)/gcc-build; ./configure \
+	@cd $(DIR_WORKING)/$(GCC)/gcc-build; ../configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/rootfs/var \
-	    --libdir=$(DIR_DIST)/rootfs/lib64 \
-	    --target=x86_64-VimOS-linux-gnu \
+	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
+	    --target=$(CONFIGURE_HOST) \
 	    --with-build-sysroot=$(DIR_DIST)/rootfs \
 	    --with-newlib \
 	    --without-headers \
@@ -77,17 +82,17 @@ $(GCC): $(BINUTILS)
 	    && make && make install
 	$(making-end)
 
-
 $(GLIBC): $(BINUTILS)
 	$(making-start)
 	@tar Jxf $(DIR_3RD_PARTY)/$(GLIBC).tar.xz -C $(DIR_WORKING)
-	@mkdir -p $(DIR_WORKING)/$(GLIBC)/tmp_build
-	@tar jxf $(DIR_3RD_PARTY)/$(LINUXTHREAD).tar.bz2 -C $(DIR_WORKING)/$(GLIBC)
-	@cd $(DIR_WORKING)/$(GLIBC)/tmp_build; ../configure \
+	@mkdir -p $(DIR_WORKING)/$(GLIBC)/glibc_build
+	@cd $(DIR_WORKING)/$(GLIBC)/glibc_build; ../configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/rootfs/var \
-	    --libdir=$(DIR_DIST)/rootfs/lib64 \
+	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
+	    --host=$(CONFIGURE_HOST) \
+	    --build=$(../scripts/config.guess) \
 	    --enable-stackguard-randomization \
 	    --enable-add-ons=nptl \
 	    --with-headers=$(DIR_DIST)/rootfs/usr/include \
