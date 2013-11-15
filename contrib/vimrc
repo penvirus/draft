@@ -631,6 +631,14 @@ augroup python
     autocmd FileType python call _python()
 augroup END
 
+augroup make
+    autocmd!
+    function! _make()
+	set foldmethod=indent
+    endfunction
+    autocmd FileType make call _make()
+augroup END
+
 " Perl
 augroup perl
     autocmd!
