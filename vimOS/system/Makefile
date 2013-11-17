@@ -1,6 +1,7 @@
 include ../common.mk
 
 BINUTILS := binutils-2.24.51
+BINUTILS := binutils-2.23.52
 GCC := gcc-4.8.2
 MPFR := mpfr-3.1.2
 GMP := gmp-5.1.3
@@ -17,34 +18,33 @@ GRUB_VERSION := 2.00
 #PKGS += $(BINUTILS)
 #PKGS += $(GCC)
 #PKGS += $(GLIBC)
-#PKGS += $(BASH)
+PKGS += $(BASH)
 
-all: toolchain
-	@cp init $(DIR_DIST)/rootfs/
-	@chmod 775 $(DIR_DIST)/rootfs/init
-	@for pkg in $(PKGS); do \
-	    $(MAKE) $$pkg || exit 1; \
-	done
+all: toolchain all_packages
 
 toolchain:
-	@mkdir -p $(DIR_WORKING)/cross-dist
 	make cross-linker
 	make cross-compiler
 	make kernel-headers
-	make $(GLIBC)
-	exit 1
-	make libstdc_plus_plus
+	make glibc
+	#make libstdc-plus-plus
+
+toolchain_clean:
+	rm -f cross-linker
+	rm -f cross-compiler
+	rm -f kernel-headers
+	rm -f glibc
+	rm -f libstdc-plus-plus
 
 cross-linker:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(BINUTILS).tar.bz2 -C $(DIR_WORKING)
 	@mkdir -p $(DIR_WORKING)/$(BINUTILS)/binutils-build
 	@cd $(DIR_WORKING)/$(BINUTILS)/binutils-build; ../configure \
-	    --prefix=$(DIR_WORKING)/cross-dist \
-	    --sysconfdir=$(DIR_WORKING)/cross-dist/etc \
-	    --localstatedir=$(DIR_WORKING)/cross-dist/var \
-	    --libdir=$(DIR_WORKING)/cross-dist/lib64 \
-	    --target=$(CROSS_COMPILE_TARGET) \
+	    --prefix=$(DIR_DIST)/rootfs/usr \
+	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
+	    --localstatedir=$(DIR_DIST)/var \
+	    --libdir=$(DIR_DIST)/rootfs/lib64 \
 	    --enable-ld=yes \
 	    --disable-nls \
 	    && make && make install
@@ -62,16 +62,17 @@ cross-compiler:
 	@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$(GCC)/gcc/configure
 	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
 	@cd $(DIR_WORKING)/$(GCC)/gcc-build; ../configure \
-	    --prefix=$(DIR_WORKING)/cross-dist \
-	    --sysconfdir=$(DIR_WORKING)/cross-dist/etc \
-	    --localstatedir=$(DIR_WORKING)/cross-dist/var \
-	    --libdir=$(DIR_WORKING)/cross-dist/lib64 \
-	    --target=$(CROSS_COMPILE_TARGET) \
+	    --prefix=$(DIR_DIST)/rootfs/usr \
+	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
+	    --localstatedir=$(DIR_DIST)/rootfs/var \
+	    --libdir=$(DIR_DIST)/lib64 \
 	    --with-build-sysroot=$(DIR_DIST)/rootfs \
 	    --with-newlib \
 	    --without-headers \
 	    --with-local-prefix=$(DIR_DIST)/rootfs/usr \
 	    --with-native-system-header-dir=$(DIR_DIST)/rootfs/usr/include \
+	    --enable-languages=c,c++ \
+	    --disable-nls \
 	    --disable-shared \
 	    --disable-decimal-float \
 	    --disable-threads \
@@ -82,10 +83,12 @@ cross-compiler:
 	    --disable-libquadmath \
 	    --disable-libsanitizer \
 	    --disable-libssp \
-	    --disable-libstdc++-v3 \
 	    --disable-multilib \
-	    --enable-languages=c,c++ \
-	    --disable-nls \
+	    --disable-libstdc++-v3 \
+	    --disable-isl-version-check \
+	    --disable-cloog-version-check \
+	    --disable-libquadmath \
+	    --disable-libquadmath-support \
 	    && make && make install
 	$(making-end)
 
@@ -98,54 +101,57 @@ kernel-headers:
 	@rm -rf $(DIR_WORKING)/linux-$(KERNEL_VERSION)
 	$(making-end)
 
-$(GLIBC):
+glibc:
 	$(making-start)
 	@tar Jxf $(DIR_3RD_PARTY)/$(GLIBC).tar.xz -C $(DIR_WORKING)
 	@mkdir -p $(DIR_WORKING)/$(GLIBC)/glibc_build
 	@cd $(DIR_WORKING)/$(GLIBC)/glibc_build; \
-	    export PATH=$(DIR_WORKING)/cross-dist/bin:$$PATH; \
 	    ../configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/rootfs/var \
 	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
-	    --host=$(CROSS_COMPILE_TARGET) \
 	    --enable-stackguard-randomization \
 	    --enable-add-ons=nptl \
 	    --with-headers=$(DIR_DIST)/rootfs/usr/include \
 	    --enable-kernel=$(KERNEL_VERSION) \
-	    --enable-all-warnings \
 	    --disable-nls \
 	    libc_cv_forced_unwind=yes \
 	    libc_cv_c_cleanup=yes \
 	    libc_cv_ctors_header=yes \
+	    libc_cv_ld_no_whole_archive=yes \
 	    && make && make install
 	$(making-end)
 
-libstdc_plus_plus:
+libstdc-plus-plus:
 	$(making-start)
 	@mkdir -p $(DIR_WORKING)/$(GCC)/libc++-build
 	@cd $(DIR_WORKING)/$(GCC)/libc++-build; \
-	    export PATH=$(DIR_WORKING)/cross-dist/bin:$$PATH; \
+	    export PATH=$(DIR_DIST)/rootfs/usr/bin:$$PATH; \
 	    ../libstdc++-v3/configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/rootfs/var \
 	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
-	    --host=$(CROSS_COMPILE_TARGET) \
 	    --disable-multilib \
 	    --disable-shared \
 	    --disable-nls \
 	    --disable-libstdcxx-threads \
 	    --disable-libstdcxx-pch \
-	    --with-gxx-include-dir=/usr/include/c++/4.8.2 \
 	    && make && make install
 	$(making-end)
+
+all_packages:
+	@install -m 775 init $(DIR_DIST)/rootfs/
+	@for pkg in $(PKGS); do \
+	    $(MAKE) $$pkg || exit 1; \
+	done
 
 $(BASH):
 	$(making-start)
 	@tar zxf $(DIR_3RD_PARTY)/$(BASH).tar.gz -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/$(BASH); \
+	    CC=$(DIR_DIST)/rootfs/usr/bin/gcc \
 	    ./configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
 	    --enable-alias \
@@ -164,13 +170,13 @@ $(BASH):
 	    --enable-select \
 	    --disable-rpath \
 	    && make install
-	@cp /lib64/libdl.so.2 $(DIR_DIST)/rootfs/lib64/
-	@cp /lib64/libc.so.6 $(DIR_DIST)/rootfs/lib64/
-	@cp /lib64/ld-linux-x86-64.so.2 $(DIR_DIST)/rootfs/lib64/
-	@cp /lib64/libtinfo.so.5 $(DIR_DIST)/rootfs/lib64/
+	#@cp /lib64/libdl.so.2 $(DIR_DIST)/rootfs/lib64/
+	#@cp /lib64/libc.so.6 $(DIR_DIST)/rootfs/lib64/
+	#@cp /lib64/ld-linux-x86-64.so.2 $(DIR_DIST)/rootfs/lib64/
+	#@cp /lib64/libtinfo.so.5 $(DIR_DIST)/rootfs/lib64/
 	$(making-end)
 
-clean:
+clean: toolchain_clean
 	@rm -f $(PKGS)
 	@rm -f *.making
 
