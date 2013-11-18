@@ -6,6 +6,8 @@ GCC := gcc-4.8.2
 MPFR := mpfr-3.1.2
 GMP := gmp-5.1.3
 MPC := mpc-1.0.1
+ISL := isl-0.11.1
+CLOOG := cloog-0.18.0
 GLIBC_LIBIDN := glibc-libidn-2.10.1
 GLIBC := glibc-2.18
 
@@ -59,6 +61,18 @@ cross-compiler:
 	@mv $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
 	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$(GCC)
 	@mv $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
+	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)/$(GCC)
+	@mkdir -p $(DIR_WORKING)/$(GCC)/isl
+	@cd $(DIR_WORKING)/$(GCC)/$(ISL); \
+	    ./configure \
+	    --prefix=$(DIR_WORKING)/$(GCC)/isl \
+	    && make && make install
+	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)/$(GCC)
+	@mkdir -p $(DIR_WORKING)/$(GCC)/cloog
+	@cd $(DIR_WORKING)/$(GCC)/$(CLOOG); \
+	    ./configure \
+	    --prefix=$(DIR_WORKING)/$(GCC)/cloog \
+	    && make && make install
 	@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$(GCC)/gcc/configure
 	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
 	@cd $(DIR_WORKING)/$(GCC)/gcc-build; ../configure \
@@ -71,6 +85,8 @@ cross-compiler:
 	    --without-headers \
 	    --with-local-prefix=$(DIR_DIST)/rootfs/usr \
 	    --with-native-system-header-dir=$(DIR_DIST)/rootfs/usr/include \
+	    --with-cloog=$(DIR_WORKING)/$(GCC)/cloog \
+	    --with-isl=$(DIR_WORKING)/$(GCC)/$(ISL) \
 	    --enable-languages=c,c++ \
 	    --disable-nls \
 	    --disable-shared \
@@ -84,11 +100,11 @@ cross-compiler:
 	    --disable-libsanitizer \
 	    --disable-libssp \
 	    --disable-multilib \
-	    --disable-libstdc++-v3 \
 	    --disable-isl-version-check \
 	    --disable-cloog-version-check \
 	    --disable-libquadmath \
 	    --disable-libquadmath-support \
+	    --disable-libstdcxx \
 	    && make && make install
 	$(making-end)
 
