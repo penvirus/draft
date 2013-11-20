@@ -20,39 +20,70 @@ GRUB_VERSION := 2.00
 #PKGS += $(BINUTILS)
 #PKGS += $(GCC)
 #PKGS += $(GLIBC)
-PKGS += $(BASH)
+#PKGS += $(BASH)
 
 all: toolchain all_packages
 
 toolchain:
-	make cross-linker
-	make cross-compiler
-	make kernel-headers
+	make binutils
+	make compiler
+	ln -sf lib64 $(DIR_DIST)/rootfs/usr/lib
+	ln -sf ./usr/lib64 $(DIR_DIST)/rootfs/lib
+	ln -sf ./usr/lib64 $(DIR_DIST)/rootfs/lib64
 	make glibc
 	#make libstdc-plus-plus
 
-toolchain_clean:
-	rm -f cross-linker
-	rm -f cross-compiler
-	rm -f kernel-headers
+toolchain_clean: binutils_clean compiler_clean glibc_clean
+	rm -f binutils
+	rm -f compiler
 	rm -f glibc
-	rm -f libstdc-plus-plus
 
-cross-linker:
+binutils:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(BINUTILS).tar.bz2 -C $(DIR_WORKING)
 	@mkdir -p $(DIR_WORKING)/$(BINUTILS)/binutils-build
 	@cd $(DIR_WORKING)/$(BINUTILS)/binutils-build; ../configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
+	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/var \
-	    --libdir=$(DIR_DIST)/rootfs/lib64 \
-	    --enable-ld=yes \
 	    --disable-nls \
 	    && make && make install
 	$(making-end)
 
-cross-compiler:
+binutils_clean:
+
+$(ISL):
+	$(making-start)
+	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
+	@cd $(DIR_WORKING)/$(ISL); \
+	    ./configure \
+	    --prefix=$(DIR_DIST)/rootfs/usr \
+	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
+	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
+	    --localstatedir=$(DIR_DIST)/var \
+	    --disable-dependency-tracking \
+	    --disable-static \
+	    --enable-silent-rules \
+	    && make && make install
+	$(making-end)
+
+$(CLOOG):
+	$(making-start)
+	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)
+	@cd $(DIR_WORKING)/$(CLOOG); \
+	    ./configure \
+	    --prefix=$(DIR_DIST)/rootfs/usr \
+	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
+	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
+	    --localstatedir=$(DIR_DIST)/var \
+	    --disable-dependency-tracking \
+	    --disable-static \
+	    --enable-silent-rules \
+	    && make && make install
+	$(making-end)
+
+compiler: $(ISL) $(CLOOG)
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)/$(GCC)
@@ -61,52 +92,26 @@ cross-compiler:
 	@mv $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
 	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$(GCC)
 	@mv $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
-	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)/$(GCC)
-	@mkdir -p $(DIR_WORKING)/$(GCC)/isl
-	@cd $(DIR_WORKING)/$(GCC)/$(ISL); \
-	    ./configure \
-	    --prefix=$(DIR_WORKING)/$(GCC)/isl \
-	    && make && make install
-	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)/$(GCC)
-	@mkdir -p $(DIR_WORKING)/$(GCC)/cloog
-	@cd $(DIR_WORKING)/$(GCC)/$(CLOOG); \
-	    ./configure \
-	    --prefix=$(DIR_WORKING)/$(GCC)/cloog \
-	    && make && make install
+	@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
+	@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
 	@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$(GCC)/gcc/configure
 	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
 	@cd $(DIR_WORKING)/$(GCC)/gcc-build; ../configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
+	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/rootfs/var \
-	    --libdir=$(DIR_DIST)/lib64 \
-	    --with-build-sysroot=$(DIR_DIST)/rootfs \
-	    --with-newlib \
 	    --without-headers \
-	    --with-local-prefix=$(DIR_DIST)/rootfs/usr \
-	    --with-native-system-header-dir=$(DIR_DIST)/rootfs/usr/include \
-	    --with-cloog=$(DIR_WORKING)/$(GCC)/cloog \
-	    --with-isl=$(DIR_WORKING)/$(GCC)/$(ISL) \
 	    --enable-languages=c,c++ \
 	    --disable-nls \
-	    --disable-shared \
-	    --disable-decimal-float \
-	    --disable-threads \
-	    --disable-libatomic \
-	    --disable-libgomp \
-	    --disable-libitm \
-	    --disable-libmudflap \
-	    --disable-libquadmath \
-	    --disable-libsanitizer \
 	    --disable-libssp \
 	    --disable-multilib \
-	    --disable-isl-version-check \
-	    --disable-cloog-version-check \
-	    --disable-libquadmath \
-	    --disable-libquadmath-support \
-	    --disable-libstdcxx \
 	    && make && make install
 	$(making-end)
+	#--with-build-sysroot=$(DIR_DIST)/rootfs
+
+compiler_clean:
+	rm -f $(ISL) $(CLOOG)
 
 kernel-headers:
 	$(making-start)
@@ -117,20 +122,22 @@ kernel-headers:
 	@rm -rf $(DIR_WORKING)/linux-$(KERNEL_VERSION)
 	$(making-end)
 
-glibc:
+glibc: kernel-headers
 	$(making-start)
 	@tar Jxf $(DIR_3RD_PARTY)/$(GLIBC).tar.xz -C $(DIR_WORKING)
 	@mkdir -p $(DIR_WORKING)/$(GLIBC)/glibc_build
 	@cd $(DIR_WORKING)/$(GLIBC)/glibc_build; \
+	    CC=$(DIR_DIST)/rootfs/usr/bin/gcc \
+	    CXX=$(DIR_DIST)/rootfs/usr/bin/g++ \
 	    ../configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
+	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/rootfs/var \
-	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
 	    --enable-stackguard-randomization \
 	    --enable-add-ons=nptl \
 	    --with-headers=$(DIR_DIST)/rootfs/usr/include \
-	    --enable-kernel=$(KERNEL_VERSION) \
+	    --enable-kernel=2.6.32 \
 	    --disable-nls \
 	    libc_cv_forced_unwind=yes \
 	    libc_cv_c_cleanup=yes \
@@ -139,6 +146,9 @@ glibc:
 	    && make && make install
 	$(making-end)
 
+glibc_clean:
+	rm -f kernel-headers
+
 libstdc-plus-plus:
 	$(making-start)
 	@mkdir -p $(DIR_WORKING)/$(GCC)/libc++-build
@@ -146,9 +156,9 @@ libstdc-plus-plus:
 	    export PATH=$(DIR_DIST)/rootfs/usr/bin:$$PATH; \
 	    ../libstdc++-v3/configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
+	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/rootfs/var \
-	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
 	    --disable-multilib \
 	    --disable-shared \
 	    --disable-nls \
@@ -170,6 +180,7 @@ $(BASH):
 	    CC=$(DIR_DIST)/rootfs/usr/bin/gcc \
 	    ./configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
+	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
 	    --enable-alias \
 	    --enable-arith-for-command \
 	    --enable-array-variables \

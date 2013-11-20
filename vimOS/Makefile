@@ -21,8 +21,6 @@ pre_build:
 	@mkdir -p $(DIR_DIST)/rootfs/sbin/
 	@mkdir -p $(DIR_DIST)/rootfs/etc/
 	@mkdir -p $(DIR_DIST)/rootfs/usr/
-	@mkdir -p $(DIR_DIST)/rootfs/lib/
-	@mkdir -p $(DIR_DIST)/rootfs/lib64/
 
 $(SUBDIRS): pre_build
 	$(MAKE) -C $@
