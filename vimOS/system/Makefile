@@ -11,8 +11,6 @@ CLOOG := cloog-0.18.0
 GLIBC_LIBIDN := glibc-libidn-2.10.1
 GLIBC := glibc-2.18
 
-LINUXTHREAD := glibc-linuxthreads-2.5
-
 BASH := bash-4.2
 
 GRUB_VERSION := 2.00
@@ -20,18 +18,17 @@ GRUB_VERSION := 2.00
 #PKGS += $(BINUTILS)
 #PKGS += $(GCC)
 #PKGS += $(GLIBC)
-#PKGS += $(BASH)
+PKGS += $(BASH)
 
 all: toolchain all_packages
 
 toolchain:
 	make binutils
 	make compiler
-	ln -sf lib64 $(DIR_DIST)/rootfs/usr/lib
-	ln -sf ./usr/lib64 $(DIR_DIST)/rootfs/lib
-	ln -sf ./usr/lib64 $(DIR_DIST)/rootfs/lib64
+	test -e $(DIR_DIST)/rootfs/usr/lib || ln -s lib64 $(DIR_DIST)/rootfs/usr/lib
+	test -e $(DIR_DIST)/rootfs/lib || ln -s ./usr/lib64 $(DIR_DIST)/rootfs/lib
+	test -e $(DIR_DIST)/rootfs/lib64 || ln -s ./usr/lib64 $(DIR_DIST)/rootfs/lib64
 	make glibc
-	#make libstdc-plus-plus
 
 toolchain_clean: binutils_clean compiler_clean glibc_clean
 	rm -f binutils
@@ -42,13 +39,17 @@ binutils:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(BINUTILS).tar.bz2 -C $(DIR_WORKING)
 	@mkdir -p $(DIR_WORKING)/$(BINUTILS)/binutils-build
-	@cd $(DIR_WORKING)/$(BINUTILS)/binutils-build; ../configure \
+	@cd $(DIR_WORKING)/$(BINUTILS)/binutils-build; \
+	    ../configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
 	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/var \
+	    --with-build-sysroot=$(DIR_DIST)/rootfs \
+	    --target=$(CROSS_COMPILE_TARGET) \
+	    --with-sysroot \
 	    --disable-nls \
-	    && make && make install
+	    && make -j4 && make install
 	$(making-end)
 
 binutils_clean:
@@ -92,23 +93,39 @@ compiler: $(ISL) $(CLOOG)
 	@mv $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
 	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$(GCC)
 	@mv $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
-	@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
-	@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
+	#@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
+	#@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
 	@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$(GCC)/gcc/configure
 	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
-	@cd $(DIR_WORKING)/$(GCC)/gcc-build; ../configure \
+	@cd $(DIR_WORKING)/$(GCC)/gcc-build; \
+	    ../configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
 	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/rootfs/var \
+	    --with-build-sysroot=$(DIR_DIST)/rootfs \
+	    --target=$(CROSS_COMPILE_TARGET) \
+	    --with-newlib \
+	    --disable-libstdc++-v3 \
 	    --without-headers \
-	    --enable-languages=c,c++ \
+	    --with-local-prefix=$(DIR_DIST)/rootfs/usr \
+	    --with-native-system-header-dir=$(DIR_DIST)/rootfs/usr/include \
 	    --disable-nls \
+	    --disable-shared \
+	    --disable-decimal-float \
+	    --disable-threads \
+	    --disable-libatomic \
+	    --disable-libgomp \
+	    --disable-libitm \
+	    --disable-libmudflap \
+	    --disable-libquadmath \
+	    --disable-libsanitizer \
 	    --disable-libssp \
+	    --disable-libstdcxx \
 	    --disable-multilib \
-	    && make && make install
+	    --enable-languages=c,c++ \
+	    && make -j4 && make install
 	$(making-end)
-	#--with-build-sysroot=$(DIR_DIST)/rootfs
 
 compiler_clean:
 	rm -f $(ISL) $(CLOOG)
@@ -127,13 +144,14 @@ glibc: kernel-headers
 	@tar Jxf $(DIR_3RD_PARTY)/$(GLIBC).tar.xz -C $(DIR_WORKING)
 	@mkdir -p $(DIR_WORKING)/$(GLIBC)/glibc_build
 	@cd $(DIR_WORKING)/$(GLIBC)/glibc_build; \
-	    CC=$(DIR_DIST)/rootfs/usr/bin/gcc \
-	    CXX=$(DIR_DIST)/rootfs/usr/bin/g++ \
+	    CC=$(DIR_DIST)/rootfs/usr/bin/$(CROSS_COMPILE_TARGET)-gcc \
+	    CXX=$(DIR_DIST)/rootfs/usr/bin/$(CROSS_COMPILE_TARGET)-g++ \
 	    ../configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
 	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/rootfs/var \
+	    --host=$(CROSS_COMPILE_TARGET) \
 	    --enable-stackguard-randomization \
 	    --enable-add-ons=nptl \
 	    --with-headers=$(DIR_DIST)/rootfs/usr/include \
@@ -143,7 +161,7 @@ glibc: kernel-headers
 	    libc_cv_c_cleanup=yes \
 	    libc_cv_ctors_header=yes \
 	    libc_cv_ld_no_whole_archive=yes \
-	    && make && make install
+	    && make -j4 && make install
 	$(making-end)
 
 glibc_clean:
@@ -177,7 +195,6 @@ $(BASH):
 	$(making-start)
 	@tar zxf $(DIR_3RD_PARTY)/$(BASH).tar.gz -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/$(BASH); \
-	    CC=$(DIR_DIST)/rootfs/usr/bin/gcc \
 	    ./configure \
 	    --prefix=$(DIR_DIST)/rootfs/usr \
 	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
@@ -196,7 +213,7 @@ $(BASH):
 	    --disable-nls \
 	    --enable-select \
 	    --disable-rpath \
-	    && make install
+	    && make -j4 && make install
 	#@cp /lib64/libdl.so.2 $(DIR_DIST)/rootfs/lib64/
 	#@cp /lib64/libc.so.6 $(DIR_DIST)/rootfs/lib64/
 	#@cp /lib64/ld-linux-x86-64.so.2 $(DIR_DIST)/rootfs/lib64/
