@@ -25,7 +25,7 @@ initrd:
 $(SYSLINUX):
 	$(making-start)
 	@tar Jxf $(DIR_3RD_PARTY)/$(SYSLINUX).tar.xz -C $(DIR_WORKING)
-	@cd $(DIR_WORKING)/$(SYSLINUX); make bios
+	@cd $(DIR_WORKING)/$(SYSLINUX); make -j4 bios
 	$(making-end)
 
 clean:

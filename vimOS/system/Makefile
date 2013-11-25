@@ -15,10 +15,7 @@ BASH := bash-4.2
 
 GRUB_VERSION := 2.00
 
-#PKGS += $(BINUTILS)
-#PKGS += $(GCC)
-#PKGS += $(GLIBC)
-PKGS += $(BASH)
+#PKGS += $(BASH)
 
 all: toolchain all_packages
 
@@ -45,10 +42,10 @@ binutils:
 	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/var \
-	    --with-build-sysroot=$(DIR_DIST)/rootfs \
 	    --target=$(CROSS_COMPILE_TARGET) \
-	    --with-sysroot \
+	    --with-sysroot=$(DIR_DIST)/rootfs \
 	    --disable-nls \
+	    --disable-werror \
 	    && make -j4 && make install
 	$(making-end)
 
@@ -66,7 +63,7 @@ $(ISL):
 	    --disable-dependency-tracking \
 	    --disable-static \
 	    --enable-silent-rules \
-	    && make && make install
+	    && make -j4 && make install
 	$(making-end)
 
 $(CLOOG):
@@ -81,7 +78,7 @@ $(CLOOG):
 	    --disable-dependency-tracking \
 	    --disable-static \
 	    --enable-silent-rules \
-	    && make && make install
+	    && make -j4 && make install
 	$(making-end)
 
 compiler: $(ISL) $(CLOOG)
@@ -93,8 +90,8 @@ compiler: $(ISL) $(CLOOG)
 	@mv $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
 	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$(GCC)
 	@mv $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
-	#@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
-	#@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
+	@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
+	@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
 	@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$(GCC)/gcc/configure
 	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
 	@cd $(DIR_WORKING)/$(GCC)/gcc-build; \
@@ -103,8 +100,8 @@ compiler: $(ISL) $(CLOOG)
 	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/rootfs/var \
-	    --with-build-sysroot=$(DIR_DIST)/rootfs \
 	    --target=$(CROSS_COMPILE_TARGET) \
+	    --with-sysroot=$(DIR_DIST)/rootfs \
 	    --with-newlib \
 	    --disable-libstdc++-v3 \
 	    --without-headers \
@@ -126,6 +123,7 @@ compiler: $(ISL) $(CLOOG)
 	    --enable-languages=c,c++ \
 	    && make -j4 && make install
 	$(making-end)
+	    #--with-build-sysroot=$(DIR_DIST)/rootfs
 
 compiler_clean:
 	rm -f $(ISL) $(CLOOG)
@@ -160,9 +158,9 @@ glibc: kernel-headers
 	    libc_cv_forced_unwind=yes \
 	    libc_cv_c_cleanup=yes \
 	    libc_cv_ctors_header=yes \
-	    libc_cv_ld_no_whole_archive=yes \
 	    && make -j4 && make install
 	$(making-end)
+	    #libc_cv_ld_no_whole_archive=yes \
 
 glibc_clean:
 	rm -f kernel-headers
