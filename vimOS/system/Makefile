@@ -1,7 +1,7 @@
 include ../common.mk
 
 BINUTILS := binutils-2.24.51
-BINUTILS := binutils-2.23.52
+#BINUTILS := binutils-2.23.52
 GCC := gcc-4.8.2
 MPFR := mpfr-3.1.2
 GMP := gmp-5.1.3
@@ -44,10 +44,12 @@ binutils:
 	    --localstatedir=$(DIR_DIST)/var \
 	    --target=$(CROSS_COMPILE_TARGET) \
 	    --with-sysroot=$(DIR_DIST)/rootfs \
+	    --with-lib-path=$(DIR_DIST)/rootfs/usr/lib64 \
 	    --disable-nls \
 	    --disable-werror \
 	    && make -j4 && make install
 	$(making-end)
+	    #--with-lib-path=/usr/lib64
 
 binutils_clean:
 
@@ -63,6 +65,7 @@ $(ISL):
 	    --disable-dependency-tracking \
 	    --disable-static \
 	    --enable-silent-rules \
+	    --disable-nls \
 	    && make -j4 && make install
 	$(making-end)
 
@@ -78,6 +81,7 @@ $(CLOOG):
 	    --disable-dependency-tracking \
 	    --disable-static \
 	    --enable-silent-rules \
+	    --disable-nls \
 	    && make -j4 && make install
 	$(making-end)
 
@@ -101,12 +105,10 @@ compiler: $(ISL) $(CLOOG)
 	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
 	    --localstatedir=$(DIR_DIST)/rootfs/var \
 	    --target=$(CROSS_COMPILE_TARGET) \
-	    --with-sysroot=$(DIR_DIST)/rootfs \
+	    --with-local-prefix=$(DIR_DIST)/rootfs \
 	    --with-newlib \
 	    --disable-libstdc++-v3 \
 	    --without-headers \
-	    --with-local-prefix=$(DIR_DIST)/rootfs/usr \
-	    --with-native-system-header-dir=$(DIR_DIST)/rootfs/usr/include \
 	    --disable-nls \
 	    --disable-shared \
 	    --disable-decimal-float \
@@ -124,6 +126,8 @@ compiler: $(ISL) $(CLOOG)
 	    && make -j4 && make install
 	$(making-end)
 	    #--with-build-sysroot=$(DIR_DIST)/rootfs
+	    #--with-native-system-header-dir=$(DIR_DIST)/rootfs/usr/include
+	    #--with-sysroot=$(DIR_DIST)/rootfs
 
 compiler_clean:
 	rm -f $(ISL) $(CLOOG)
