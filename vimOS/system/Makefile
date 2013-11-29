@@ -1,7 +1,12 @@
 include ../common.mk
 
+ROOTFS := $(DIR_DIST)/rootfs
+ROOTFS_PREFIX := $(DIR_DIST)/rootfs
+ROOTFS_LIB := $(DIR_DIST)/rootfs/lib64
+ROOTFS_ETC := $(DIR_DIST)/rootfs/etc
+ROOTFS_VAR := $(DIR_DIST)/rootfs/var
+
 BINUTILS := binutils-2.24.51
-#BINUTILS := binutils-2.23.52
 GCC := gcc-4.8.2
 MPFR := mpfr-3.1.2
 GMP := gmp-5.1.3
@@ -22,9 +27,10 @@ all: toolchain all_packages
 toolchain:
 	make binutils
 	make compiler
-	test -e $(DIR_DIST)/rootfs/usr/lib || ln -s lib64 $(DIR_DIST)/rootfs/usr/lib
-	test -e $(DIR_DIST)/rootfs/lib || ln -s ./usr/lib64 $(DIR_DIST)/rootfs/lib
-	test -e $(DIR_DIST)/rootfs/lib64 || ln -s ./usr/lib64 $(DIR_DIST)/rootfs/lib64
+	test -e $(ROOTFS)/usr/lib || ln -s $(ROOTFS_LIB) $(ROOTFS)/usr/lib
+	test -e $(ROOTFS)/lib || ln -s $(ROOTFS_LIB) $(ROOTFS)/lib
+	test -e $(ROOTFS)/usr/lib64 || ln -s $(ROOTFS_LIB) $(ROOTFS)/usr/lib64
+	test -e $(ROOTFS)/lib64 || ln -s $(ROOTFS_LIB) $(ROOTFS)/lib64
 	make glibc
 
 toolchain_clean: binutils_clean compiler_clean glibc_clean
@@ -38,18 +44,18 @@ binutils:
 	@mkdir -p $(DIR_WORKING)/$(BINUTILS)/binutils-build
 	@cd $(DIR_WORKING)/$(BINUTILS)/binutils-build; \
 	    ../configure \
-	    --prefix=$(DIR_DIST)/rootfs/usr \
-	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
-	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
-	    --localstatedir=$(DIR_DIST)/var \
+	    --prefix=$(ROOTFS_PREFIX) \
+	    --libdir=$(ROOTFS_LIB) \
+	    --sysconfdir=$(ROOTFS_ETC) \
+	    --localstatedir=$(ROOTFS_VAR) \
 	    --target=$(CROSS_COMPILE_TARGET) \
-	    --with-sysroot=$(DIR_DIST)/rootfs \
-	    --with-lib-path=$(DIR_DIST)/rootfs/usr/lib64 \
+	    --with-sysroot=$(ROOTFS) \
+	    --with-lib-path=$(ROOTFS_LIB) \
+	    --with-sysroot=$(ROOTFS) \
 	    --disable-nls \
 	    --disable-werror \
 	    && make -j4 && make install
 	$(making-end)
-	    #--with-lib-path=/usr/lib64
 
 binutils_clean:
 
@@ -58,10 +64,10 @@ $(ISL):
 	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/$(ISL); \
 	    ./configure \
-	    --prefix=$(DIR_DIST)/rootfs/usr \
-	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
-	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
-	    --localstatedir=$(DIR_DIST)/var \
+	    --prefix=$(ROOTFS_PREFIX) \
+	    --libdir=$(ROOTFS_LIB) \
+	    --sysconfdir=$(ROOTFS_ETC) \
+	    --localstatedir=$(ROOTFS_VAR) \
 	    --disable-dependency-tracking \
 	    --disable-static \
 	    --enable-silent-rules \
@@ -74,10 +80,10 @@ $(CLOOG):
 	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/$(CLOOG); \
 	    ./configure \
-	    --prefix=$(DIR_DIST)/rootfs/usr \
-	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
-	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
-	    --localstatedir=$(DIR_DIST)/var \
+	    --prefix=$(ROOTFS_PREFIX) \
+	    --libdir=$(ROOTFS_LIB) \
+	    --sysconfdir=$(ROOTFS_ETC) \
+	    --localstatedir=$(ROOTFS_VAR) \
 	    --disable-dependency-tracking \
 	    --disable-static \
 	    --enable-silent-rules \
@@ -100,12 +106,13 @@ compiler: $(ISL) $(CLOOG)
 	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
 	@cd $(DIR_WORKING)/$(GCC)/gcc-build; \
 	    ../configure \
-	    --prefix=$(DIR_DIST)/rootfs/usr \
-	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
-	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
-	    --localstatedir=$(DIR_DIST)/rootfs/var \
+	    --prefix=$(ROOTFS_PREFIX) \
+	    --libdir=$(ROOTFS_LIB) \
+	    --sysconfdir=$(ROOTFS_ETC) \
+	    --localstatedir=$(ROOTFS_VAR) \
 	    --target=$(CROSS_COMPILE_TARGET) \
-	    --with-local-prefix=$(DIR_DIST)/rootfs \
+	    --with-local-prefix=$(ROOTFS) \
+	    --with-sysroot=$(ROOTFS) \
 	    --with-newlib \
 	    --disable-libstdc++-v3 \
 	    --without-headers \
@@ -125,9 +132,8 @@ compiler: $(ISL) $(CLOOG)
 	    --enable-languages=c,c++ \
 	    && make -j4 && make install
 	$(making-end)
-	    #--with-build-sysroot=$(DIR_DIST)/rootfs
 	    #--with-native-system-header-dir=$(DIR_DIST)/rootfs/usr/include
-	    #--with-sysroot=$(DIR_DIST)/rootfs
+	    #--with-build-sysroot=$(DIR_DIST)/rootfs
 
 compiler_clean:
 	rm -f $(ISL) $(CLOOG)
@@ -137,7 +143,7 @@ kernel-headers:
 	@cd $(DIR_3RD_PARTY); tar Jxf linux-$(KERNEL_VERSION).tar.xz -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION)/; \
 	    make headers_check && \
-	    make INSTALL_HDR_PATH=$(DIR_DIST)/rootfs/usr ARCH=x86 headers_install
+	    make INSTALL_HDR_PATH=$(ROOTFS_PREFIX) ARCH=x86 headers_install
 	@rm -rf $(DIR_WORKING)/linux-$(KERNEL_VERSION)
 	$(making-end)
 
@@ -146,17 +152,17 @@ glibc: kernel-headers
 	@tar Jxf $(DIR_3RD_PARTY)/$(GLIBC).tar.xz -C $(DIR_WORKING)
 	@mkdir -p $(DIR_WORKING)/$(GLIBC)/glibc_build
 	@cd $(DIR_WORKING)/$(GLIBC)/glibc_build; \
-	    CC=$(DIR_DIST)/rootfs/usr/bin/$(CROSS_COMPILE_TARGET)-gcc \
-	    CXX=$(DIR_DIST)/rootfs/usr/bin/$(CROSS_COMPILE_TARGET)-g++ \
+	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 	    ../configure \
-	    --prefix=$(DIR_DIST)/rootfs/usr \
-	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
-	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
-	    --localstatedir=$(DIR_DIST)/rootfs/var \
+	    --prefix=$(ROOTFS_PREFIX) \
+	    --libdir=$(ROOTFS_LIB) \
+	    --sysconfdir=$(ROOTFS_ETC) \
+	    --localstatedir=$(ROOTFS_VAR) \
 	    --host=$(CROSS_COMPILE_TARGET) \
 	    --enable-stackguard-randomization \
 	    --enable-add-ons=nptl \
-	    --with-headers=$(DIR_DIST)/rootfs/usr/include \
+	    --with-headers=$(ROOTFS_PREFIX)/include \
 	    --enable-kernel=2.6.32 \
 	    --disable-nls \
 	    libc_cv_forced_unwind=yes \
@@ -175,10 +181,10 @@ libstdc-plus-plus:
 	@cd $(DIR_WORKING)/$(GCC)/libc++-build; \
 	    export PATH=$(DIR_DIST)/rootfs/usr/bin:$$PATH; \
 	    ../libstdc++-v3/configure \
-	    --prefix=$(DIR_DIST)/rootfs/usr \
-	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
-	    --sysconfdir=$(DIR_DIST)/rootfs/etc \
-	    --localstatedir=$(DIR_DIST)/rootfs/var \
+	    --prefix=$(ROOTFS_PREFIX) \
+	    --libdir=$(ROOTFS_LIB) \
+	    --sysconfdir=$(ROOTFS_ETC) \
+	    --localstatedir=$(ROOTFS_VAR) \
 	    --disable-multilib \
 	    --disable-shared \
 	    --disable-nls \
@@ -198,8 +204,10 @@ $(BASH):
 	@tar zxf $(DIR_3RD_PARTY)/$(BASH).tar.gz -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/$(BASH); \
 	    ./configure \
-	    --prefix=$(DIR_DIST)/rootfs/usr \
-	    --libdir=$(DIR_DIST)/rootfs/usr/lib64 \
+	    --prefix=$(ROOTFS_PREFIX) \
+	    --libdir=$(ROOTFS_LIB) \
+	    --sysconfdir=$(ROOTFS_ETC) \
+	    --localstatedir=$(ROOTFS_VAR) \
 	    --enable-alias \
 	    --enable-arith-for-command \
 	    --enable-array-variables \

@@ -5,7 +5,7 @@ root=$1
 for file in $(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
 do
 	cp -uv $file{,.orig}
-	sed -e 's@/lib\(64\)\?\(32\)\?/ld@'$root'/&@g' \
+	sed -e 's@/lib\(64\)\?\(32\)\?/ld@'$root'&@g' \
 		-e 's@/usr@'$root'/usr@g' $file.orig > $file
 	echo '
 #undef STANDARD_STARTFILE_PREFIX_1
