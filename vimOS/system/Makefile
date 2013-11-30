@@ -1,8 +1,8 @@
 include ../common.mk
 
 ROOTFS := $(DIR_DIST)/rootfs
-ROOTFS_PREFIX := $(DIR_DIST)/rootfs
-ROOTFS_LIB := $(DIR_DIST)/rootfs/lib64
+ROOTFS_PREFIX := $(DIR_DIST)/rootfs/usr
+ROOTFS_LIB := $(DIR_DIST)/rootfs/usr/lib64
 ROOTFS_ETC := $(DIR_DIST)/rootfs/etc
 ROOTFS_VAR := $(DIR_DIST)/rootfs/var
 
@@ -25,20 +25,22 @@ GRUB_VERSION := 2.00
 all: toolchain all_packages
 
 toolchain:
-	make binutils
-	make compiler
+	make temp-binutils
+	make temp-compiler
 	test -e $(ROOTFS)/usr/lib || ln -s $(ROOTFS_LIB) $(ROOTFS)/usr/lib
 	test -e $(ROOTFS)/lib || ln -s $(ROOTFS_LIB) $(ROOTFS)/lib
 	test -e $(ROOTFS)/usr/lib64 || ln -s $(ROOTFS_LIB) $(ROOTFS)/usr/lib64
 	test -e $(ROOTFS)/lib64 || ln -s $(ROOTFS_LIB) $(ROOTFS)/lib64
 	make glibc
+	#make libstdc-plus-plus
 
 toolchain_clean: binutils_clean compiler_clean glibc_clean
-	rm -f binutils
-	rm -f compiler
+	rm -f temp-binutils
+	rm -f temp-compiler
 	rm -f glibc
+	rm -f libstdc-plus-plus
 
-binutils:
+temp-binutils:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(BINUTILS).tar.bz2 -C $(DIR_WORKING)
 	@mkdir -p $(DIR_WORKING)/$(BINUTILS)/binutils-build
@@ -90,7 +92,7 @@ $(CLOOG):
 	    && make -j4 && make install
 	$(making-end)
 
-compiler: $(ISL) $(CLOOG)
+temp-compiler: $(ISL) $(CLOOG)
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)/$(GCC)
@@ -169,7 +171,6 @@ glibc: kernel-headers
 	    libc_cv_ctors_header=yes \
 	    && make -j4 && make install
 	$(making-end)
-	    #libc_cv_ld_no_whole_archive=yes \
 
 glibc_clean:
 	rm -f kernel-headers
@@ -178,18 +179,23 @@ libstdc-plus-plus:
 	$(making-start)
 	@mkdir -p $(DIR_WORKING)/$(GCC)/libc++-build
 	@cd $(DIR_WORKING)/$(GCC)/libc++-build; \
-	    export PATH=$(DIR_DIST)/rootfs/usr/bin:$$PATH; \
+	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 	    ../libstdc++-v3/configure \
 	    --prefix=$(ROOTFS_PREFIX) \
 	    --libdir=$(ROOTFS_LIB) \
 	    --sysconfdir=$(ROOTFS_ETC) \
 	    --localstatedir=$(ROOTFS_VAR) \
+	    --host=$(CROSS_COMPILE_TARGET) \
 	    --disable-multilib \
 	    --disable-shared \
 	    --disable-nls \
 	    --disable-libstdcxx-threads \
 	    --disable-libstdcxx-pch \
-	    && make && make install
+	    --disable-shared \
+	    --without-newlib \
+	    --with-gxx-include-dir=$(ROOTFS_PREFIX)/include/c++/4.8.2 \
+	    && make -j4 && make install
 	$(making-end)
 
 all_packages:
