@@ -49,7 +49,7 @@ binutils:
 	    --sysconfdir=$(ROOTFS_ETC) \
 	    --localstatedir=$(ROOTFS_VAR) \
 	    --target=$(CROSS_COMPILE_TARGET) \
-	    --with-sysroot=$(ROOTFS) \
+	    --with-sysroot \
 	    --disable-nls \
 	    --disable-werror \
 	    && make -j4 && make install
