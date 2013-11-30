@@ -32,6 +32,7 @@ toolchain:
 	test -e $(ROOTFS)/usr/lib64 || ln -s $(ROOTFS_LIB) $(ROOTFS)/usr/lib64
 	test -e $(ROOTFS)/lib64 || ln -s $(ROOTFS_LIB) $(ROOTFS)/lib64
 	make glibc
+	make binutils
 	#make libstdc-plus-plus
 
 toolchain_clean: binutils_clean compiler_clean glibc_clean
@@ -55,6 +56,7 @@ temp-binutils:
 	    --disable-nls \
 	    --disable-werror \
 	    && make -j4 && make install
+	@rm -rf $(DIR_WORKING)/$(BINUTILS)
 	$(making-end)
 	    #--with-lib-path=$(ROOTFS_LIB)
 
@@ -133,6 +135,7 @@ temp-compiler: $(ISL) $(CLOOG)
 	    --enable-languages=c,c++ \
 	    && make -j4 && make install
 	$(making-end)
+	@rm -rf $(DIR_WORKING)/$(GCC)
 	    #--with-native-system-header-dir=$(DIR_DIST)/rootfs/usr/include
 	    #--with-build-sysroot=$(DIR_DIST)/rootfs
 
