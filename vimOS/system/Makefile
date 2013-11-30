@@ -33,13 +33,14 @@ toolchain:
 	test -e $(ROOTFS)/lib64 || ln -s $(ROOTFS_LIB) $(ROOTFS)/lib64
 	make glibc
 	make binutils
-	#make libstdc-plus-plus
+	make compiler
 
-toolchain_clean: binutils_clean compiler_clean glibc_clean
+toolchain_clean: temp_binutils_clean temp_compiler_clean glibc_clean binutils_clean compiler_clean
 	rm -f temp-binutils
 	rm -f temp-compiler
 	rm -f glibc
-	rm -f libstdc-plus-plus
+	rm -f binutils
+	rm -f compiler
 
 temp-binutils:
 	$(making-start)
@@ -58,9 +59,8 @@ temp-binutils:
 	    && make -j4 && make install
 	@rm -rf $(DIR_WORKING)/$(BINUTILS)
 	$(making-end)
-	    #--with-lib-path=$(ROOTFS_LIB)
 
-binutils_clean:
+temp_binutils_clean:
 
 $(ISL):
 	$(making-start)
@@ -139,7 +139,7 @@ temp-compiler: $(ISL) $(CLOOG)
 	    #--with-native-system-header-dir=$(DIR_DIST)/rootfs/usr/include
 	    #--with-build-sysroot=$(DIR_DIST)/rootfs
 
-compiler_clean:
+temp_compiler_clean:
 	rm -f $(ISL) $(CLOOG)
 
 kernel-headers:
@@ -178,6 +178,63 @@ glibc: kernel-headers
 glibc_clean:
 	rm -f kernel-headers
 
+binutils:
+	$(making-start)
+	@tar jxf $(DIR_3RD_PARTY)/$(BINUTILS).tar.bz2 -C $(DIR_WORKING)
+	@mkdir -p $(DIR_WORKING)/$(BINUTILS)/binutils-build
+	@cd $(DIR_WORKING)/$(BINUTILS)/binutils-build; \
+	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
+	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
+	    ../configure \
+	    --prefix=$(ROOTFS_PREFIX) \
+	    --libdir=$(ROOTFS_LIB) \
+	    --sysconfdir=$(ROOTFS_ETC) \
+	    --localstatedir=$(ROOTFS_VAR) \
+	    --with-sysroot \
+	    --disable-nls \
+	    && make -j4 && make install
+	$(making-end)
+
+binutils_clean:
+
+compiler: $(ISL) $(CLOOG)
+	$(making-start)
+	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
+	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)/$(GCC)
+	@mv $(DIR_WORKING)/$(GCC)/$(MPFR) $(DIR_WORKING)/$(GCC)/mpfr
+	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$(GCC)
+	@mv $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
+	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$(GCC)
+	@mv $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
+	#@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
+	#@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
+	#@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$(GCC)/gcc/configure
+	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
+	@cd $(DIR_WORKING)/$(GCC)/gcc-build; \
+	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
+	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
+	    ../configure \
+	    --prefix=$(ROOTFS_PREFIX) \
+	    --libdir=$(ROOTFS_LIB) \
+	    --sysconfdir=$(ROOTFS_ETC) \
+	    --localstatedir=$(ROOTFS_VAR) \
+	    --enable-clocale=gnu \
+	    --enable-shared \
+	    --enable-threads=posix \
+	    --enable-__cxa_atexit \
+	    --enable-languages=c,c++ \
+	    --disable-libstdcxx-pch \
+	    --disable-multilib \
+	    --disable-bootstrap \
+	    --disable-libgomp \
+	    && make -j4 && make install
+	$(making-end)
+
+compiler_clean:
+	rm -f $(ISL) $(CLOOG)
+	
 libstdc-plus-plus:
 	$(making-start)
 	@mkdir -p $(DIR_WORKING)/$(GCC)/libc++-build
