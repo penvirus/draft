@@ -99,8 +99,8 @@ compiler: $(ISL) $(CLOOG)
 	@mv $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
 	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$(GCC)
 	@mv $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
-	#@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
-	#@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
+	@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
+	@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
 	@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$(GCC)/gcc/configure
 	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
 	@cd $(DIR_WORKING)/$(GCC)/gcc-build; \

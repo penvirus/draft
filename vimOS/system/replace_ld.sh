@@ -8,7 +8,7 @@ do
 	sed -e 's@/lib\(64\)\?\(32\)\?/ld@'$root'&@g' \
 		-e 's@/usr@'$root'/usr@g' $file.orig > $file
 #define STANDARD_STARTFILE_PREFIX_1 "'$root'/usr/lib64/"
-	echo '
+	#echo '
 #undef STANDARD_STARTFILE_PREFIX_1
 #undef STANDARD_STARTFILE_PREFIX_2
 #define STANDARD_STARTFILE_PREFIX_1 "/usr/lib64/"
