@@ -53,7 +53,8 @@ temp-binutils:
 	    --sysconfdir=$(ROOTFS_ETC) \
 	    --localstatedir=$(ROOTFS_VAR) \
 	    --target=$(CROSS_COMPILE_TARGET) \
-	    --with-sysroot \
+	    --with-sysroot=$(ROOTFS) \
+	    --with-lib-path=$(ROOTFS_LIB) \
 	    --disable-nls \
 	    --disable-werror \
 	    && make -j4 && make install
@@ -136,8 +137,6 @@ temp-compiler: $(ISL) $(CLOOG)
 	    && make -j4 && make install
 	$(making-end)
 	@rm -rf $(DIR_WORKING)/$(GCC)
-	    #--with-native-system-header-dir=$(DIR_DIST)/rootfs/usr/include
-	    #--with-build-sysroot=$(DIR_DIST)/rootfs
 
 temp_compiler_clean:
 	rm -f $(ISL) $(CLOOG)
@@ -174,6 +173,7 @@ glibc: kernel-headers
 	    libc_cv_ctors_header=yes \
 	    && make -j4 && make install
 	$(making-end)
+	sed -i 's@/$(ROOTFS)@@g' $(ROOTFS_LIB)/libc.so
 
 glibc_clean:
 	rm -f kernel-headers
