@@ -32,6 +32,7 @@ toolchain:
 	test -e $(ROOTFS)/usr/lib64 || ln -s $(ROOTFS_LIB) $(ROOTFS)/usr/lib64
 	test -e $(ROOTFS)/lib64 || ln -s $(ROOTFS_LIB) $(ROOTFS)/lib64
 	make glibc
+	make libstdc-plus-plus
 	make binutils
 	make compiler
 
@@ -39,6 +40,7 @@ toolchain_clean: temp_binutils_clean temp_compiler_clean glibc_clean binutils_cl
 	rm -f temp-binutils
 	rm -f temp-compiler
 	rm -f glibc
+	rm -f libstdc-plus-plus
 	rm -f binutils
 	rm -f compiler
 
@@ -173,7 +175,7 @@ glibc: kernel-headers
 	    libc_cv_ctors_header=yes \
 	    && make -j4 && make install
 	$(making-end)
-	sed -i 's@/$(ROOTFS)@@g' $(ROOTFS_LIB)/libc.so
+	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libc.so
 
 glibc_clean:
 	rm -f kernel-headers
