@@ -33,12 +33,13 @@ PKGS += $(COREUTIL)
 all: toolchain all_packages
 
 toolchain:
-	make binutils_pass1
-	make gcc_pass1
+	mkdir -pv $(ROOTFS_LIB)
 	test -e $(ROOTFS)/usr/lib || ln -sv $(ROOTFS_LIB) $(ROOTFS)/usr/lib
 	test -e $(ROOTFS)/lib || ln -sv $(ROOTFS_LIB) $(ROOTFS)/lib
 	test -e $(ROOTFS)/usr/lib64 || ln -sv $(ROOTFS_LIB) $(ROOTFS)/usr/lib64
 	test -e $(ROOTFS)/lib64 || ln -sv $(ROOTFS_LIB) $(ROOTFS)/lib64
+	make binutils_pass1
+	make gcc_pass1
 	make glibc
 	make libstdc-plus-plus
 	exit 1
@@ -59,9 +60,9 @@ toolchain_clean: \
 binutils_pass1:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(BINUTILS).tar.bz2 -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(BINUTILS) $(DIR_WORKING)/$(BINUTILS)_$@
-	@mkdir -pv $(DIR_WORKING)/$(BINUTILS)_$@/binutils-build
-	@cd $(DIR_WORKING)/$(BINUTILS)_$@/binutils-build; \
+	@mv -v $(DIR_WORKING)/$(BINUTILS) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
 	    ../configure \
 	    $(INSTALL_DIRS) \
 	    --target=$(CROSS_COMPILE_TARGET) \
@@ -69,68 +70,129 @@ binutils_pass1:
 	    --with-lib-path=$(ROOTFS_LIB) \
 	    --disable-nls \
 	    --disable-werror \
-	    && make -j4 && make install
+	    && make $(MAKE_FLAGS) \
+	    && make install
 	$(making-end)
 
 binutils_pass1_clean:
 
-gcc_pass1:
+gmp_pass1:
 	$(making-start)
 	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)
-	@cd $(DIR_WORKING)/$(GMP); \
-	    ./configure \
+	@mv -v $(DIR_WORKING)/$(GMP) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+	    ../configure \
 	    $(INSTALL_DIRS) \
 	    --enable-shared \
 	    --disable-static \
 	    --enable-fast-install \
 	    --disable-nls \
-	    && make -j4 && make install
-	exit 1
-	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
-	@cd $(DIR_WORKING)/$(ISL); \
-	    ./configure \
-	    $(INSTALL_DIRS) \
-	    --disable-dependency-tracking \
-	    --disable-static \
-	    --enable-silent-rules \
-	    --disable-nls \
-	    && make -j4 && make install
-	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)
-	@cd $(DIR_WORKING)/$(CLOOG); \
-	    ./configure \
-	    $(INSTALL_DIRS) \
-	    --disable-dependency-tracking \
-	    --disable-static \
-	    --enable-silent-rules \
-	    --disable-nls \
-	    && make -j4 && make install
+	    && make $(MAKE_FLAGS) \
+	    && make install
+	$(making-end)
+
+mpfr_pass1:
+	$(making-start)
 	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)
-	@cd $(DIR_WORKING)/$(MPFR); \
-	    ./configure \
+	@mv -v $(DIR_WORKING)/$(MPFR) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+	    ../configure \
 	    $(INSTALL_DIRS) \
+	    --enable-shared \
 	    --disable-static \
 	    --disable-dependency-tracking \
 	    --disable-nls \
-	    && make -j4 && make install
+	    --with-gmp-include=$(ROOTFS_PREFIX)/include \
+	    --with-gmp-lib=$(ROOTFS_PREFIX)/lib64 \
+	    && make $(MAKE_FLAGS) \
+	    && make install
+	$(making-end)
+
+mpc_pass1:
+	$(making-start)
 	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)
-	@cd $(DIR_WORKING)/$(MPC); \
-	    ./configure \
+	@mv -v $(DIR_WORKING)/$(MPC) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+	    ../configure \
 	    $(INSTALL_DIRS) \
+	    --enable-shared \
 	    --disable-static \
 	    --disable-dependency-tracking \
 	    --disable-nls \
-	    && make -j4 && make install
-	@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
-	@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
-	@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$(GCC)/gcc/configure
-	@mkdir -pv $(DIR_WORKING)/$(GCC)/gcc-build
+	    --with-gmp-include=$(ROOTFS_PREFIX)/include \
+	    --with-gmp-lib=$(ROOTFS_PREFIX)/lib64 \
+	    --with-mpfr-include=$(ROOTFS_PREFIX)/include \
+	    --with-mpfr-lib=$(ROOTFS_PREFIX)/lib64 \
+	    && make $(MAKE_FLAGS) \
+	    && make install
+	$(making-end)
+
+isl_pass1:
+	$(making-start)
+	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(ISL) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+	    ../configure \
+	    $(INSTALL_DIRS) \
+	    --enable-silent-rules \
+	    --disable-dependency-tracking \
+	    --enable-shared \
+	    --disable-static \
+	    --disable-nls \
+	    --with-gmp-prefix=$(ROOTFS_PREFIX) \
+	    && make $(MAKE_FLAGS) \
+	    && make install
+	$(making-end)
+
+cloog_pass1:
+	$(making-start)
+	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(CLOOG) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+	    ../configure \
+	    $(INSTALL_DIRS) \
+	    --enable-silent-rules \
+	    --disable-dependency-tracking \
+	    --enable-shared \
+	    --disable-static \
+	    --disable-nls \
+	    --enable-fast-install \
+	    --with-isl-prefix=$(ROOTFS_PREFIX) \
+	    --with-gmp-prefix=$(ROOTFS_PREFIX) \
+	    && make $(MAKE_FLAGS) \
+	    && make install
+	$(making-end)
+
+gcc_pass1:
+	$(making-start)
+	make gmp_pass1
+	make mpfr_pass1
+	make mpc_pass1
+	make isl_pass1
+	make cloog_pass1
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
-	@cd $(DIR_WORKING)/$(GCC)/gcc-build; \
+	@mv -v $(DIR_WORKING)/$(GCC) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cp replace_ld.sh $(DIR_WORKING)/$@
+	@cd $(DIR_WORKING)/$@; sh replace_ld.sh $(DIR_DIST)/rootfs
+	@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$@/gcc/configure
+	@cd $(DIR_WORKING)/$@/$@_build; \
 	    ../configure \
 	    $(INSTALL_DIRS) \
 	    --target=$(CROSS_COMPILE_TARGET) \
 	    --with-local-prefix=$(ROOTFS_PREFIX) \
 	    --with-sysroot=$(ROOTFS) \
+	    --with-mpc=$(ROOTFS_PREFIX) \
+	    --with-mpfr=$(ROOTFS_PREFIX) \
+	    --with-gmp=$(ROOTFS_PREFIX) \
+	    --with-cloog=$(ROOTFS_PREFIX) \
+	    --with-isl=$(ROOTFS_PREFIX) \
+	    --disable-isl-version-check \
 	    --with-newlib \
 	    --disable-libstdc++-v3 \
 	    --without-headers \
@@ -153,6 +215,7 @@ gcc_pass1:
 	@rm -rfv $(DIR_WORKING)/$(GCC)
 
 gcc_pass1_clean:
+	rm -f gmp_pass1 mpfr_pass1 mpc_pass1 isl_pass1 cloog_pass1
 
 kernel-headers:
 	$(making-start)
@@ -276,7 +339,7 @@ compiler: $(ISL) $(CLOOG)
 
 compiler_clean:
 	rm -fv $(ISL) $(CLOOG)
-	
+
 all_packages:
 	@install -m 775 init $(DIR_DIST)/rootfs/
 	@for pkg in $(PKGS); do \
