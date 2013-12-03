@@ -237,6 +237,7 @@ compiler: $(ISL) $(CLOOG)
 	    $(INSTALL_DIRS) \
 	    --with-local-prefix=$(ROOTFS_PREFIX) \
 	    --with-build-sysroot=$(ROOTFS) \
+	    --with-sysroot=$(ROOTFS) \
 	    --enable-clocale=gnu \
 	    --enable-shared \
 	    --enable-threads=posix \
