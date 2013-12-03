@@ -20,6 +20,12 @@ BASH := bash-4.2
 
 GRUB_VERSION := 2.00
 
+INSTALL_DIRS := \
+    --prefix=$(ROOTFS_PREFIX) \
+    --libdir=$(ROOTFS_LIB) \
+    --sysconfdir=$(ROOTFS_ETC) \
+    --localstatedir=$(ROOTFS_VAR)
+
 #PKGS += $(BASH)
 
 all: toolchain all_packages
@@ -53,10 +59,7 @@ temp-binutils:
 	@mkdir -p $(DIR_WORKING)/$(BINUTILS)/binutils-build
 	@cd $(DIR_WORKING)/$(BINUTILS)/binutils-build; \
 	    ../configure \
-	    --prefix=$(ROOTFS_PREFIX) \
-	    --libdir=$(ROOTFS_LIB) \
-	    --sysconfdir=$(ROOTFS_ETC) \
-	    --localstatedir=$(ROOTFS_VAR) \
+	    $(INSTALL_DIRS) \
 	    --target=$(CROSS_COMPILE_TARGET) \
 	    --with-sysroot=$(ROOTFS) \
 	    --with-lib-path=$(ROOTFS_LIB) \
@@ -73,10 +76,7 @@ $(ISL):
 	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/$(ISL); \
 	    ./configure \
-	    --prefix=$(ROOTFS_PREFIX) \
-	    --libdir=$(ROOTFS_LIB) \
-	    --sysconfdir=$(ROOTFS_ETC) \
-	    --localstatedir=$(ROOTFS_VAR) \
+	    $(INSTALL_DIRS) \
 	    --disable-dependency-tracking \
 	    --disable-static \
 	    --enable-silent-rules \
@@ -89,10 +89,7 @@ $(CLOOG):
 	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/$(CLOOG); \
 	    ./configure \
-	    --prefix=$(ROOTFS_PREFIX) \
-	    --libdir=$(ROOTFS_LIB) \
-	    --sysconfdir=$(ROOTFS_ETC) \
-	    --localstatedir=$(ROOTFS_VAR) \
+	    $(INSTALL_DIRS) \
 	    --disable-dependency-tracking \
 	    --disable-static \
 	    --enable-silent-rules \
@@ -115,10 +112,7 @@ temp-compiler: $(ISL) $(CLOOG)
 	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
 	@cd $(DIR_WORKING)/$(GCC)/gcc-build; \
 	    ../configure \
-	    --prefix=$(ROOTFS_PREFIX) \
-	    --libdir=$(ROOTFS_LIB) \
-	    --sysconfdir=$(ROOTFS_ETC) \
-	    --localstatedir=$(ROOTFS_VAR) \
+	    $(INSTALL_DIRS) \
 	    --target=$(CROSS_COMPILE_TARGET) \
 	    --with-local-prefix=$(ROOTFS_PREFIX) \
 	    --with-sysroot=$(ROOTFS) \
@@ -164,10 +158,7 @@ glibc: kernel-headers
 	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 	    ../configure \
-	    --prefix=$(ROOTFS_PREFIX) \
-	    --libdir=$(ROOTFS_LIB) \
-	    --sysconfdir=$(ROOTFS_ETC) \
-	    --localstatedir=$(ROOTFS_VAR) \
+	    $(INSTALL_DIRS) \
 	    --host=$(CROSS_COMPILE_TARGET) \
 	    --enable-stackguard-randomization \
 	    --enable-add-ons=nptl \
@@ -192,10 +183,7 @@ libstdc-plus-plus:
 	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 	    ../libstdc++-v3/configure \
-	    --prefix=$(ROOTFS_PREFIX) \
-	    --libdir=$(ROOTFS_LIB) \
-	    --sysconfdir=$(ROOTFS_ETC) \
-	    --localstatedir=$(ROOTFS_VAR) \
+	    $(INSTALL_DIRS) \
 	    --host=$(CROSS_COMPILE_TARGET) \
 	    --disable-multilib \
 	    --disable-shared \
@@ -219,10 +207,7 @@ binutils:
 	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
 	    ../configure \
-	    --prefix=$(ROOTFS_PREFIX) \
-	    --libdir=$(ROOTFS_LIB) \
-	    --sysconfdir=$(ROOTFS_ETC) \
-	    --localstatedir=$(ROOTFS_VAR) \
+	    $(INSTALL_DIRS) \
 	    --with-lib-path=$(ROOTFS_LIB) \
 	    --with-sysroot \
 	    --disable-nls \
@@ -252,10 +237,7 @@ compiler: $(ISL) $(CLOOG)
 	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
 	    RANLIB=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ranlib \
 	    ../configure \
-	    --prefix=$(ROOTFS_PREFIX) \
-	    --libdir=$(ROOTFS_LIB) \
-	    --sysconfdir=$(ROOTFS_ETC) \
-	    --localstatedir=$(ROOTFS_VAR) \
+	    $(INSTALL_DIRS) \
 	    --with-local-prefix=$(ROOTFS_PREFIX) \
 	    --with-native-system-header-dir=$(ROOTFS_PREFIX)/include \
 	    --enable-clocale=gnu \
@@ -284,10 +266,7 @@ $(BASH):
 	@tar zxf $(DIR_3RD_PARTY)/$(BASH).tar.gz -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/$(BASH); \
 	    ./configure \
-	    --prefix=$(ROOTFS_PREFIX) \
-	    --libdir=$(ROOTFS_LIB) \
-	    --sysconfdir=$(ROOTFS_ETC) \
-	    --localstatedir=$(ROOTFS_VAR) \
+	    $(INSTALL_DIRS) \
 	    --enable-alias \
 	    --enable-arith-for-command \
 	    --enable-array-variables \
@@ -304,10 +283,6 @@ $(BASH):
 	    --enable-select \
 	    --disable-rpath \
 	    && make -j4 && make install
-	#@cp /lib64/libdl.so.2 $(DIR_DIST)/rootfs/lib64/
-	#@cp /lib64/libc.so.6 $(DIR_DIST)/rootfs/lib64/
-	#@cp /lib64/ld-linux-x86-64.so.2 $(DIR_DIST)/rootfs/lib64/
-	#@cp /lib64/libtinfo.so.5 $(DIR_DIST)/rootfs/lib64/
 	$(making-end)
 
 clean: toolchain_clean
