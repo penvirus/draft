@@ -33,10 +33,10 @@ all: toolchain all_packages
 toolchain:
 	make temp-binutils
 	make temp-compiler
-	test -e $(ROOTFS)/usr/lib || ln -s $(ROOTFS_LIB) $(ROOTFS)/usr/lib
-	test -e $(ROOTFS)/lib || ln -s $(ROOTFS_LIB) $(ROOTFS)/lib
-	test -e $(ROOTFS)/usr/lib64 || ln -s $(ROOTFS_LIB) $(ROOTFS)/usr/lib64
-	test -e $(ROOTFS)/lib64 || ln -s $(ROOTFS_LIB) $(ROOTFS)/lib64
+	test -e $(ROOTFS)/usr/lib || ln -sv $(ROOTFS_LIB) $(ROOTFS)/usr/lib
+	test -e $(ROOTFS)/lib || ln -sv $(ROOTFS_LIB) $(ROOTFS)/lib
+	test -e $(ROOTFS)/usr/lib64 || ln -sv $(ROOTFS_LIB) $(ROOTFS)/usr/lib64
+	test -e $(ROOTFS)/lib64 || ln -sv $(ROOTFS_LIB) $(ROOTFS)/lib64
 	make glibc
 	make libstdc-plus-plus
 	make binutils
@@ -46,17 +46,17 @@ toolchain_clean: \
     temp_binutils_clean temp_compiler_clean \
     glibc_clean libstdc-plus-plus_clean \
     binutils_clean compiler_clean
-	rm -f temp-binutils
-	rm -f temp-compiler
-	rm -f glibc
-	rm -f libstdc-plus-plus
-	rm -f binutils
-	rm -f compiler
+	rm -fv temp-binutils
+	rm -fv temp-compiler
+	rm -fv glibc
+	rm -fv libstdc-plus-plus
+	rm -fv binutils
+	rm -fv compiler
 
 temp-binutils:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(BINUTILS).tar.bz2 -C $(DIR_WORKING)
-	@mkdir -p $(DIR_WORKING)/$(BINUTILS)/binutils-build
+	@mkdir -pv $(DIR_WORKING)/$(BINUTILS)/binutils-build
 	@cd $(DIR_WORKING)/$(BINUTILS)/binutils-build; \
 	    ../configure \
 	    $(INSTALL_DIRS) \
@@ -66,7 +66,7 @@ temp-binutils:
 	    --disable-nls \
 	    --disable-werror \
 	    && make -j4 && make install
-	@rm -rf $(DIR_WORKING)/$(BINUTILS)
+	@rm -rfv $(DIR_WORKING)/$(BINUTILS)
 	$(making-end)
 
 temp_binutils_clean:
@@ -101,15 +101,15 @@ temp-compiler: $(ISL) $(CLOOG)
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)/$(GCC)
-	@mv $(DIR_WORKING)/$(GCC)/$(MPFR) $(DIR_WORKING)/$(GCC)/mpfr
+	@mv -v $(DIR_WORKING)/$(GCC)/$(MPFR) $(DIR_WORKING)/$(GCC)/mpfr
 	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$(GCC)
-	@mv $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
+	@mv -v $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
 	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$(GCC)
-	@mv $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
+	@mv -v $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
 	@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
 	@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
 	@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$(GCC)/gcc/configure
-	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
+	@mkdir -pv $(DIR_WORKING)/$(GCC)/gcc-build
 	@cd $(DIR_WORKING)/$(GCC)/gcc-build; \
 	    ../configure \
 	    $(INSTALL_DIRS) \
@@ -135,10 +135,10 @@ temp-compiler: $(ISL) $(CLOOG)
 	    --enable-languages=c,c++ \
 	    && make -j4 && make install
 	$(making-end)
-	@rm -rf $(DIR_WORKING)/$(GCC)
+	@rm -rfv $(DIR_WORKING)/$(GCC)
 
 temp_compiler_clean:
-	rm -f $(ISL) $(CLOOG)
+	rm -fv $(ISL) $(CLOOG)
 
 kernel-headers:
 	$(making-start)
@@ -146,13 +146,13 @@ kernel-headers:
 	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION)/; \
 	    make headers_check && \
 	    make INSTALL_HDR_PATH=$(ROOTFS_PREFIX) ARCH=x86 headers_install
-	@rm -rf $(DIR_WORKING)/linux-$(KERNEL_VERSION)
+	@rm -rfv $(DIR_WORKING)/linux-$(KERNEL_VERSION)
 	$(making-end)
 
 glibc: kernel-headers
 	$(making-start)
 	@tar Jxf $(DIR_3RD_PARTY)/$(GLIBC).tar.xz -C $(DIR_WORKING)
-	@mkdir -p $(DIR_WORKING)/$(GLIBC)/glibc_build
+	@mkdir -pv $(DIR_WORKING)/$(GLIBC)/glibc_build
 	@cd $(DIR_WORKING)/$(GLIBC)/glibc_build; \
 	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
@@ -172,12 +172,12 @@ glibc: kernel-headers
 	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libpthread.so
 
 glibc_clean:
-	rm -f kernel-headers
+	rm -fv kernel-headers
 
 libstdc-plus-plus:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
-	@mkdir -p $(DIR_WORKING)/$(GCC)/libc++-build
+	@mkdir -pv $(DIR_WORKING)/$(GCC)/libc++-build
 	@cd $(DIR_WORKING)/$(GCC)/libc++-build; \
 	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
@@ -192,14 +192,14 @@ libstdc-plus-plus:
 	    --with-gxx-include-dir=$(ROOTFS_PREFIX)/$(CROSS_COMPILE_TARGET)/include/c++/4.8.2 \
 	    && make -j4 && make install
 	$(making-end)
-	@rm -rf $(DIR_3RD_PARTY)/$(GCC)
+	@rm -rfv $(DIR_3RD_PARTY)/$(GCC)
 
 libstdc-plus-plus_clean:
 
 binutils:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(BINUTILS).tar.bz2 -C $(DIR_WORKING)
-	@mkdir -p $(DIR_WORKING)/$(BINUTILS)/binutils-build
+	@mkdir -pv $(DIR_WORKING)/$(BINUTILS)/binutils-build
 	@cd $(DIR_WORKING)/$(BINUTILS)/binutils-build; \
 	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
@@ -218,14 +218,14 @@ compiler: $(ISL) $(CLOOG)
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)/$(GCC)
-	@mv $(DIR_WORKING)/$(GCC)/$(MPFR) $(DIR_WORKING)/$(GCC)/mpfr
+	@mv -v $(DIR_WORKING)/$(GCC)/$(MPFR) $(DIR_WORKING)/$(GCC)/mpfr
 	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$(GCC)
-	@mv $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
+	@mv -v $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
 	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$(GCC)
-	@mv $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
+	@mv -v $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
 	@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
 	@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
-	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
+	@mkdir -pv $(DIR_WORKING)/$(GCC)/gcc-build
 	cd $(DIR_WORKING)/$(GCC); \
 	    cat gcc/limitx.h gcc/glimits.h gcc/limity.h > $(shell dirname $(shell $(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc -print-libgcc-file-name))/include-fixed/limits.h
 	@cd $(DIR_WORKING)/$(GCC)/gcc-build; \
@@ -251,7 +251,7 @@ compiler: $(ISL) $(CLOOG)
 	$(making-end)
 
 compiler_clean:
-	rm -f $(ISL) $(CLOOG)
+	rm -fv $(ISL) $(CLOOG)
 	
 all_packages:
 	@install -m 775 init $(DIR_DIST)/rootfs/
@@ -284,7 +284,7 @@ $(BASH):
 	$(making-end)
 
 clean: toolchain_clean
-	@rm -f $(PKGS)
-	@rm -f *.making
+	@rm -fv $(PKGS)
+	@rm -fv *.making
 
 .PHONY: all clean
