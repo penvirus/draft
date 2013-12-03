@@ -1,4 +1,3 @@
-#!/usr/bin/bash
+#!/bin/bash
 
-echo "==========TEST"
-/usr/bin/bash
+/bin/bash

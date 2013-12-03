@@ -26,7 +26,7 @@ INSTALL_DIRS := \
     --sysconfdir=$(ROOTFS_ETC) \
     --localstatedir=$(ROOTFS_VAR)
 
-#PKGS += $(BASH)
+PKGS += $(BASH)
 
 all: toolchain all_packages
 
@@ -263,6 +263,8 @@ $(BASH):
 	$(making-start)
 	@tar zxf $(DIR_3RD_PARTY)/$(BASH).tar.gz -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/$(BASH); \
+	    CC=$(ROOTFS_PREFIX)/bin/gcc \
+	    CXX=$(ROOTFS_PREFIX)/bin/g++ \
 	    ./configure \
 	    $(INSTALL_DIRS) \
 	    --enable-alias \
@@ -280,6 +282,7 @@ $(BASH):
 	    --disable-nls \
 	    --enable-select \
 	    --disable-rpath \
+	    --with-gnu-malloc \
 	    && make -j4 && make install
 	$(making-end)
 

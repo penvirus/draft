@@ -12,14 +12,14 @@ SUBDIRS = system kernel cdiso
 all: $(SUBDIRS)
 
 pre_build:
-	@mkdir -p $(DIR_WORKING)
-	@mkdir -p $(DIR_DIST)
-	@mkdir -p $(DIR_DIST)/rootfs/
-	@mkdir -p $(DIR_DIST)/rootfs/dev/
-	@mkdir -p $(DIR_DIST)/rootfs/boot/
-	@mkdir -p $(DIR_DIST)/rootfs/bin/
-	@mkdir -p $(DIR_DIST)/rootfs/etc/
-	@mkdir -p $(DIR_DIST)/rootfs/usr/
+	@mkdir -pv $(DIR_WORKING)
+	@mkdir -pv $(DIR_DIST)
+	@mkdir -pv $(DIR_DIST)/rootfs/
+	@mkdir -pv $(DIR_DIST)/rootfs/dev/
+	@mkdir -pv $(DIR_DIST)/rootfs/boot/
+	@mkdir -pv $(DIR_DIST)/rootfs/etc/
+	@mkdir -pv $(DIR_DIST)/rootfs/usr/
+	test -e $(DIR_DIST)/rootfs/bin || ln -sv ./usr/bin $(DIR_DIST)/rootfs/bin
 
 $(SUBDIRS): pre_build
 	$(MAKE) -C $@
@@ -28,7 +28,7 @@ clean:
 	@for sub in $(SUBDIRS); do \
 	    $(MAKE) -C $$sub $@; \
 	done
-	@rm -rf $(DIR_WORKING)
-	@rm -rf $(DIR_DIST)
+	@rm -rfv $(DIR_WORKING)
+	@rm -rfv $(DIR_DIST)
 
 .PHONY: all clean
