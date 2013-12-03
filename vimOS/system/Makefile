@@ -136,7 +136,6 @@ temp-compiler: $(ISL) $(CLOOG)
 	    && make -j4 && make install
 	$(making-end)
 	@rm -rf $(DIR_WORKING)/$(GCC)
-	    #--with-native-system-header-dir=$(ROOTFS_PREFIX)/include
 
 temp_compiler_clean:
 	rm -f $(ISL) $(CLOOG)
@@ -161,7 +160,6 @@ glibc: kernel-headers
 	    $(INSTALL_DIRS) \
 	    --host=$(CROSS_COMPILE_TARGET) \
 	    --enable-stackguard-randomization \
-	    --enable-add-ons=nptl \
 	    --with-headers=$(ROOTFS_PREFIX)/include \
 	    --enable-kernel=2.6.32 \
 	    --disable-nls \
@@ -171,6 +169,7 @@ glibc: kernel-headers
 	    && make -j4 && make install
 	$(making-end)
 	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libc.so
+	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libpthread.so
 
 glibc_clean:
 	rm -f kernel-headers
@@ -194,7 +193,6 @@ libstdc-plus-plus:
 	    && make -j4 && make install
 	$(making-end)
 	@rm -rf $(DIR_3RD_PARTY)/$(GCC)
-	    #--without-newlib
 
 libstdc-plus-plus_clean:
 
@@ -227,7 +225,6 @@ compiler: $(ISL) $(CLOOG)
 	@mv $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
 	@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
 	@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
-	#@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$(GCC)/gcc/configure
 	@mkdir -p $(DIR_WORKING)/$(GCC)/gcc-build
 	cd $(DIR_WORKING)/$(GCC); \
 	    cat gcc/limitx.h gcc/glimits.h gcc/limity.h > $(shell dirname $(shell $(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc -print-libgcc-file-name))/include-fixed/limits.h
@@ -239,7 +236,7 @@ compiler: $(ISL) $(CLOOG)
 	    ../configure \
 	    $(INSTALL_DIRS) \
 	    --with-local-prefix=$(ROOTFS_PREFIX) \
-	    --with-native-system-header-dir=$(ROOTFS_PREFIX)/include \
+	    --with-build-sysroot=$(ROOTFS) \
 	    --enable-clocale=gnu \
 	    --enable-shared \
 	    --enable-threads=posix \
