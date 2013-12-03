@@ -17,6 +17,7 @@ GLIBC_LIBIDN := glibc-libidn-2.10.1
 GLIBC := glibc-2.18
 
 BASH := bash-4.2
+COREUTIL := coreutils-8.21
 
 GRUB_VERSION := 2.00
 
@@ -27,37 +28,40 @@ INSTALL_DIRS := \
     --localstatedir=$(ROOTFS_VAR)
 
 PKGS += $(BASH)
+PKGS += $(COREUTIL)
 
 all: toolchain all_packages
 
 toolchain:
-	make temp-binutils
-	make temp-compiler
+	make binutils_pass1
+	make gcc_pass1
 	test -e $(ROOTFS)/usr/lib || ln -sv $(ROOTFS_LIB) $(ROOTFS)/usr/lib
 	test -e $(ROOTFS)/lib || ln -sv $(ROOTFS_LIB) $(ROOTFS)/lib
 	test -e $(ROOTFS)/usr/lib64 || ln -sv $(ROOTFS_LIB) $(ROOTFS)/usr/lib64
 	test -e $(ROOTFS)/lib64 || ln -sv $(ROOTFS_LIB) $(ROOTFS)/lib64
 	make glibc
 	make libstdc-plus-plus
+	exit 1
 	make binutils
 	make compiler
 
 toolchain_clean: \
-    temp_binutils_clean temp_compiler_clean \
+    binutils_pass1_clean gcc_pass1_clean \
     glibc_clean libstdc-plus-plus_clean \
     binutils_clean compiler_clean
-	rm -fv temp-binutils
-	rm -fv temp-compiler
+	rm -fv binutils_pass1
+	rm -fv gcc_pass1
 	rm -fv glibc
 	rm -fv libstdc-plus-plus
 	rm -fv binutils
 	rm -fv compiler
 
-temp-binutils:
+binutils_pass1:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(BINUTILS).tar.bz2 -C $(DIR_WORKING)
-	@mkdir -pv $(DIR_WORKING)/$(BINUTILS)/binutils-build
-	@cd $(DIR_WORKING)/$(BINUTILS)/binutils-build; \
+	@mv -v $(DIR_WORKING)/$(BINUTILS) $(DIR_WORKING)/$(BINUTILS)_$@
+	@mkdir -pv $(DIR_WORKING)/$(BINUTILS)_$@/binutils-build
+	@cd $(DIR_WORKING)/$(BINUTILS)_$@/binutils-build; \
 	    ../configure \
 	    $(INSTALL_DIRS) \
 	    --target=$(CROSS_COMPILE_TARGET) \
@@ -66,13 +70,22 @@ temp-binutils:
 	    --disable-nls \
 	    --disable-werror \
 	    && make -j4 && make install
-	@rm -rfv $(DIR_WORKING)/$(BINUTILS)
 	$(making-end)
 
-temp_binutils_clean:
+binutils_pass1_clean:
 
-$(ISL):
+gcc_pass1:
 	$(making-start)
+	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)
+	@cd $(DIR_WORKING)/$(GMP); \
+	    ./configure \
+	    $(INSTALL_DIRS) \
+	    --enable-shared \
+	    --disable-static \
+	    --enable-fast-install \
+	    --disable-nls \
+	    && make -j4 && make install
+	exit 1
 	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/$(ISL); \
 	    ./configure \
@@ -82,10 +95,6 @@ $(ISL):
 	    --enable-silent-rules \
 	    --disable-nls \
 	    && make -j4 && make install
-	$(making-end)
-
-$(CLOOG):
-	$(making-start)
 	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/$(CLOOG); \
 	    ./configure \
@@ -95,21 +104,27 @@ $(CLOOG):
 	    --enable-silent-rules \
 	    --disable-nls \
 	    && make -j4 && make install
-	$(making-end)
-
-temp-compiler: $(ISL) $(CLOOG)
-	$(making-start)
-	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
-	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)/$(GCC)
-	@mv -v $(DIR_WORKING)/$(GCC)/$(MPFR) $(DIR_WORKING)/$(GCC)/mpfr
-	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$(GCC)
-	@mv -v $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
-	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$(GCC)
-	@mv -v $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
+	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)
+	@cd $(DIR_WORKING)/$(MPFR); \
+	    ./configure \
+	    $(INSTALL_DIRS) \
+	    --disable-static \
+	    --disable-dependency-tracking \
+	    --disable-nls \
+	    && make -j4 && make install
+	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)
+	@cd $(DIR_WORKING)/$(MPC); \
+	    ./configure \
+	    $(INSTALL_DIRS) \
+	    --disable-static \
+	    --disable-dependency-tracking \
+	    --disable-nls \
+	    && make -j4 && make install
 	@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
 	@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
 	@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$(GCC)/gcc/configure
 	@mkdir -pv $(DIR_WORKING)/$(GCC)/gcc-build
+	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/$(GCC)/gcc-build; \
 	    ../configure \
 	    $(INSTALL_DIRS) \
@@ -137,8 +152,7 @@ temp-compiler: $(ISL) $(CLOOG)
 	$(making-end)
 	@rm -rfv $(DIR_WORKING)/$(GCC)
 
-temp_compiler_clean:
-	rm -fv $(ISL) $(CLOOG)
+gcc_pass1_clean:
 
 kernel-headers:
 	$(making-start)
@@ -206,6 +220,7 @@ binutils:
 	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
 	    ../configure \
 	    $(INSTALL_DIRS) \
+	    --host=$(CROSS_COMPILE_TARGET) \
 	    --with-lib-path=$(ROOTFS_LIB) \
 	    --with-sysroot \
 	    --disable-nls \
@@ -221,12 +236,20 @@ compiler: $(ISL) $(CLOOG)
 	@mv -v $(DIR_WORKING)/$(GCC)/$(MPFR) $(DIR_WORKING)/$(GCC)/mpfr
 	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$(GCC)
 	@mv -v $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
+	@mkdir -pv $(DIR_WORKING)/$(GCC)/gmp-build
+	@cd $(DIR_WORKING)/$(GCC)/gmp-build; \
+	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
+	    ../gmp/configure \
+	    $(INSTALL_DIRS) \
+	    --host=$(CROSS_COMPILE_TARGET) \
+	    && make -j4 && make install
 	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$(GCC)
 	@mv -v $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
 	@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
 	@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
 	@mkdir -pv $(DIR_WORKING)/$(GCC)/gcc-build
-	cd $(DIR_WORKING)/$(GCC); \
+	@cd $(DIR_WORKING)/$(GCC); \
 	    cat gcc/limitx.h gcc/glimits.h gcc/limity.h > $(shell dirname $(shell $(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc -print-libgcc-file-name))/include-fixed/limits.h
 	@cd $(DIR_WORKING)/$(GCC)/gcc-build; \
 	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
@@ -235,6 +258,7 @@ compiler: $(ISL) $(CLOOG)
 	    RANLIB=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ranlib \
 	    ../configure \
 	    $(INSTALL_DIRS) \
+	    --host=$(CROSS_COMPILE_TARGET) \
 	    --with-local-prefix=$(ROOTFS_PREFIX) \
 	    --with-build-sysroot=$(ROOTFS) \
 	    --with-sysroot=$(ROOTFS) \
@@ -286,8 +310,21 @@ $(BASH):
 	    && make -j4 && make install
 	$(making-end)
 
+$(COREUTIL):
+	$(making-start)
+	@tar xJf $(DIR_3RD_PARTY)/$(COREUTIL).tar.xz -C $(DIR_WORKING)
+	@cd $(DIR_WORKING)/$(COREUTIL); \
+	    CC=$(ROOTFS_PREFIX)/bin/gcc \
+	    CXX=$(ROOTFS_PREFIX)/bin/g++ \
+	    ./configure \
+	    $(INSTALL_DIRS) \
+	    --enable-install-program=hostname \
+	    --disable-nls \
+	    && make -j4 && make install
+	$(making-end)
+
 clean: toolchain_clean
-	@rm -fv $(PKGS)
-	@rm -fv *.making
+	@rm -f $(PKGS)
+	@rm -f *.making
 
 .PHONY: all clean

@@ -28,7 +28,7 @@ clean:
 	@for sub in $(SUBDIRS); do \
 	    $(MAKE) -C $$sub $@; \
 	done
-	@rm -rfv $(DIR_WORKING)
-	@rm -rfv $(DIR_DIST)
+	@rm -rf $(DIR_WORKING)
+	@rm -rf $(DIR_DIST)
 
 .PHONY: all clean
