@@ -41,15 +41,15 @@ toolchain:
 	test -e $(ROOTFS)/usr/lib64 || ln -sv $(ROOTFS_LIB) $(ROOTFS)/usr/lib64
 	test -e $(ROOTFS)/lib64 || ln -sv $(ROOTFS_LIB) $(ROOTFS)/lib64
 	make $(addsuffix _pass1, $(TOOLCHAIN))
-	make glibc
 	make kernel_header
+	make glibc
 	make libstdc_plus_plus
+	make $(addsuffix _pass2, $(TOOLCHAIN))
 	exit 1
-	make binutils
-	make compiler
 
 toolchain_clean:
 	rm -f $(addsuffix _pass1, $(TOOLCHAIN))
+	rm -f $(addsuffix _pass2, $(TOOLCHAIN))
 	rm -f glibc
 	rm -f kernel_header
 	rm -f libstdc_plus_plus
@@ -165,7 +165,7 @@ gcc_pass1:
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(GCC) $(DIR_WORKING)/$@
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cp replace_ld.sh $(DIR_WORKING)/$@
+	@cp -v replace_ld.sh $(DIR_WORKING)/$@/
 	@cd $(DIR_WORKING)/$@; sh replace_ld.sh $(DIR_DIST)/rootfs
 	@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$@/gcc/configure
 	@cd $(DIR_WORKING)/$@/$@_build; \
@@ -229,8 +229,12 @@ glibc:
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
-	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libc.so
-	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libpthread.so
+	cp -v $(ROOTFS_LIB)/libc.so $(ROOTFS_LIB)/libc.so.new
+	cp -v $(ROOTFS_LIB)/libpthread.so $(ROOTFS_LIB)/libpthread.so.new
+	cp -v $(ROOTFS_LIB)/libc.so $(ROOTFS_LIB)/libc.so.old
+	cp -v $(ROOTFS_LIB)/libpthread.so $(ROOTFS_LIB)/libpthread.so.old
+	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libc.so.new
+	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libpthread.so.new
 
 libstdc_plus_plus:
 	$(making-start)
@@ -376,22 +380,25 @@ gcc_pass2:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(GCC) $(DIR_WORKING)/$@
-	@cp replace_ld.sh $(DIR_WORKING)/$@
+	@cp -v replace_ld.sh $(DIR_WORKING)/$@/
 	@cd $(DIR_WORKING)/$@; sh replace_ld.sh $(DIR_DIST)/rootfs
 	@cd $(DIR_WORKING)/$@; \
 	    cat gcc/limitx.h gcc/glimits.h gcc/limity.h > $(shell dirname $(shell $(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc -print-libgcc-file-name))/include-fixed/limits.h
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$(GCC)/gcc-build; \
+	@cd $(DIR_WORKING)/$@/$@_build; \
 	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
 	    RANLIB=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ranlib \
 	    ../configure \
 	    $(INSTALL_DIRS) \
-	    --host=$(CROSS_COMPILE_TARGET) \
 	    --with-local-prefix=$(ROOTFS_PREFIX) \
-	    --with-build-sysroot=$(ROOTFS) \
 	    --with-sysroot=$(ROOTFS) \
+	    --with-gmp=$(ROOTFS_PREFIX) \
+	    --with-mpfr=$(ROOTFS_PREFIX) \
+	    --with-mpc=$(ROOTFS_PREFIX) \
+	    --with-isl=$(ROOTFS_PREFIX) \
+	    --with-cloog=$(ROOTFS_PREFIX) \
 	    --enable-clocale=gnu \
 	    --enable-shared \
 	    --enable-threads=posix \
@@ -404,6 +411,7 @@ gcc_pass2:
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
+	    #--with-build-sysroot=$(ROOTFS)
 
 all_packages:
 	@install -m 775 init $(DIR_DIST)/rootfs/
