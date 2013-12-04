@@ -84,8 +84,7 @@ gmp_pass1:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 	    ../configure \
 	    $(INSTALL_DIRS) \
-	    --enable-shared \
-	    --disable-static \
+	    --disable-shared \
 	    --enable-fast-install \
 	    --disable-nls \
 	    && make $(MAKE_FLAGS) \
@@ -100,8 +99,7 @@ mpfr_pass1:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 	    ../configure \
 	    $(INSTALL_DIRS) \
-	    --enable-shared \
-	    --disable-static \
+	    --disable-shared \
 	    --disable-dependency-tracking \
 	    --disable-nls \
 	    --with-gmp-include=$(ROOTFS_PREFIX)/include \
@@ -118,8 +116,7 @@ mpc_pass1:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 	    ../configure \
 	    $(INSTALL_DIRS) \
-	    --enable-shared \
-	    --disable-static \
+	    --disable-shared \
 	    --disable-dependency-tracking \
 	    --disable-nls \
 	    --with-gmp-include=$(ROOTFS_PREFIX)/include \
@@ -139,9 +136,8 @@ isl_pass1:
 	    ../configure \
 	    $(INSTALL_DIRS) \
 	    --enable-silent-rules \
+	    --disable-shared \
 	    --disable-dependency-tracking \
-	    --enable-shared \
-	    --disable-static \
 	    --disable-nls \
 	    --with-gmp-prefix=$(ROOTFS_PREFIX) \
 	    && make $(MAKE_FLAGS) \
@@ -157,9 +153,8 @@ cloog_pass1:
 	    ../configure \
 	    $(INSTALL_DIRS) \
 	    --enable-silent-rules \
+	    --disable-shared \
 	    --disable-dependency-tracking \
-	    --enable-shared \
-	    --disable-static \
 	    --disable-nls \
 	    --enable-fast-install \
 	    --with-isl-prefix=$(ROOTFS_PREFIX) \
@@ -187,12 +182,11 @@ gcc_pass1:
 	    --target=$(CROSS_COMPILE_TARGET) \
 	    --with-local-prefix=$(ROOTFS_PREFIX) \
 	    --with-sysroot=$(ROOTFS) \
-	    --with-mpc=$(ROOTFS_PREFIX) \
-	    --with-mpfr=$(ROOTFS_PREFIX) \
 	    --with-gmp=$(ROOTFS_PREFIX) \
-	    --with-cloog=$(ROOTFS_PREFIX) \
+	    --with-mpfr=$(ROOTFS_PREFIX) \
+	    --with-mpc=$(ROOTFS_PREFIX) \
 	    --with-isl=$(ROOTFS_PREFIX) \
-	    --disable-isl-version-check \
+	    --with-cloog=$(ROOTFS_PREFIX) \
 	    --with-newlib \
 	    --disable-libstdc++-v3 \
 	    --without-headers \
@@ -210,7 +204,8 @@ gcc_pass1:
 	    --disable-libstdcxx \
 	    --disable-multilib \
 	    --enable-languages=c,c++ \
-	    && make -j4 && make install
+	    && make $(MAKE_FLAGS) \
+	    && make install
 	$(making-end)
 	@rm -rfv $(DIR_WORKING)/$(GCC)
 
