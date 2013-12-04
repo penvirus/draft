@@ -32,30 +32,29 @@ PKGS += $(COREUTIL)
 
 all: toolchain all_packages
 
+TOOLCHAIN := binutils gmp mpfr mpc isl cloog gcc
+
 toolchain:
 	mkdir -pv $(ROOTFS_LIB)
 	test -e $(ROOTFS)/usr/lib || ln -sv $(ROOTFS_LIB) $(ROOTFS)/usr/lib
 	test -e $(ROOTFS)/lib || ln -sv $(ROOTFS_LIB) $(ROOTFS)/lib
 	test -e $(ROOTFS)/usr/lib64 || ln -sv $(ROOTFS_LIB) $(ROOTFS)/usr/lib64
 	test -e $(ROOTFS)/lib64 || ln -sv $(ROOTFS_LIB) $(ROOTFS)/lib64
-	make binutils_pass1
-	make gcc_pass1
+	make $(addsuffix _pass1, $(TOOLCHAIN))
 	make glibc
-	make libstdc-plus-plus
+	make kernel_header
+	make libstdc_plus_plus
 	exit 1
 	make binutils
 	make compiler
 
-toolchain_clean: \
-    binutils_pass1_clean gcc_pass1_clean \
-    glibc_clean libstdc-plus-plus_clean \
-    binutils_clean compiler_clean
-	rm -fv binutils_pass1
-	rm -fv gcc_pass1
-	rm -fv glibc
-	rm -fv libstdc-plus-plus
-	rm -fv binutils
-	rm -fv compiler
+toolchain_clean:
+	rm -f $(addsuffix _pass1, $(TOOLCHAIN))
+	rm -f glibc
+	rm -f kernel_header
+	rm -f libstdc_plus_plus
+	rm -f binutils
+	rm -f compiler
 
 binutils_pass1:
 	$(making-start)
@@ -73,8 +72,6 @@ binutils_pass1:
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
-
-binutils_pass1_clean:
 
 gmp_pass1:
 	$(making-start)
@@ -165,11 +162,6 @@ cloog_pass1:
 
 gcc_pass1:
 	$(making-start)
-	make gmp_pass1
-	make mpfr_pass1
-	make mpc_pass1
-	make isl_pass1
-	make cloog_pass1
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(GCC) $(DIR_WORKING)/$@
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
@@ -207,25 +199,21 @@ gcc_pass1:
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
-	@rm -rfv $(DIR_WORKING)/$(GCC)
 
-gcc_pass1_clean:
-	rm -f gmp_pass1 mpfr_pass1 mpc_pass1 isl_pass1 cloog_pass1
-
-kernel-headers:
+kernel_header:
 	$(making-start)
 	@cd $(DIR_3RD_PARTY); tar Jxf linux-$(KERNEL_VERSION).tar.xz -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION)/; \
 	    make headers_check && \
 	    make INSTALL_HDR_PATH=$(ROOTFS_PREFIX) ARCH=x86 headers_install
-	@rm -rfv $(DIR_WORKING)/linux-$(KERNEL_VERSION)
 	$(making-end)
 
-glibc: kernel-headers
+glibc:
 	$(making-start)
 	@tar Jxf $(DIR_3RD_PARTY)/$(GLIBC).tar.xz -C $(DIR_WORKING)
-	@mkdir -pv $(DIR_WORKING)/$(GLIBC)/glibc_build
-	@cd $(DIR_WORKING)/$(GLIBC)/glibc_build; \
+	@mv -v $(DIR_WORKING)/$(GLIBC) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
 	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 	    ../configure \
@@ -238,19 +226,18 @@ glibc: kernel-headers
 	    libc_cv_forced_unwind=yes \
 	    libc_cv_c_cleanup=yes \
 	    libc_cv_ctors_header=yes \
-	    && make -j4 && make install
+	    && make $(MAKE_FLAGS) \
+	    && make install
 	$(making-end)
 	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libc.so
 	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libpthread.so
 
-glibc_clean:
-	rm -fv kernel-headers
-
-libstdc-plus-plus:
+libstdc_plus_plus:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
-	@mkdir -pv $(DIR_WORKING)/$(GCC)/libc++-build
-	@cd $(DIR_WORKING)/$(GCC)/libc++-build; \
+	@mv -v $(DIR_WORKING)/$(GCC) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
 	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 	    ../libstdc++-v3/configure \
@@ -264,11 +251,8 @@ libstdc-plus-plus:
 	    --with-gxx-include-dir=$(ROOTFS_PREFIX)/$(CROSS_COMPILE_TARGET)/include/c++/4.8.2 \
 	    && make -j4 && make install
 	$(making-end)
-	@rm -rfv $(DIR_3RD_PARTY)/$(GCC)
 
-libstdc-plus-plus_clean:
-
-binutils:
+binutils_pass2:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(BINUTILS).tar.bz2 -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$(BINUTILS)/binutils-build
@@ -282,33 +266,121 @@ binutils:
 	    --with-lib-path=$(ROOTFS_LIB) \
 	    --with-sysroot \
 	    --disable-nls \
-	    && make -j4 && make install
+	    && make $(MAKE_FLAGS) \
+	    && make install
 	$(making-end)
 
-binutils_clean:
-
-compiler: $(ISL) $(CLOOG)
+gmp_pass2:
 	$(making-start)
-	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
-	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)/$(GCC)
-	@mv -v $(DIR_WORKING)/$(GCC)/$(MPFR) $(DIR_WORKING)/$(GCC)/mpfr
-	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$(GCC)
-	@mv -v $(DIR_WORKING)/$(GCC)/$(GMP) $(DIR_WORKING)/$(GCC)/gmp
-	@mkdir -pv $(DIR_WORKING)/$(GCC)/gmp-build
-	@cd $(DIR_WORKING)/$(GCC)/gmp-build; \
+	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(GMP) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
 	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
-	    ../gmp/configure \
+	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
+	    ../configure \
 	    $(INSTALL_DIRS) \
-	    --host=$(CROSS_COMPILE_TARGET) \
-	    && make -j4 && make install
-	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$(GCC)
-	@mv -v $(DIR_WORKING)/$(GCC)/$(MPC) $(DIR_WORKING)/$(GCC)/mpc
-	@cp replace_ld.sh $(DIR_WORKING)/$(GCC)/
-	@cd $(DIR_WORKING)/$(GCC); sh replace_ld.sh $(DIR_DIST)/rootfs
-	@mkdir -pv $(DIR_WORKING)/$(GCC)/gcc-build
-	@cd $(DIR_WORKING)/$(GCC); \
+	    --disable-shared \
+	    --enable-fast-install \
+	    --disable-nls \
+	    && make $(MAKE_FLAGS) \
+	    && make install
+	$(making-end)
+
+mpfr_pass2:
+	$(making-start)
+	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(MPFR) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
+	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
+	    ../configure \
+	    $(INSTALL_DIRS) \
+	    --disable-shared \
+	    --disable-dependency-tracking \
+	    --disable-nls \
+	    --with-gmp-include=$(ROOTFS_PREFIX)/include \
+	    --with-gmp-lib=$(ROOTFS_PREFIX)/lib64 \
+	    && make $(MAKE_FLAGS) \
+	    && make install
+	$(making-end)
+
+mpc_pass2:
+	$(making-start)
+	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(MPC) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
+	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
+	    ../configure \
+	    $(INSTALL_DIRS) \
+	    --disable-shared \
+	    --disable-dependency-tracking \
+	    --disable-nls \
+	    --with-gmp-include=$(ROOTFS_PREFIX)/include \
+	    --with-gmp-lib=$(ROOTFS_PREFIX)/lib64 \
+	    --with-mpfr-include=$(ROOTFS_PREFIX)/include \
+	    --with-mpfr-lib=$(ROOTFS_PREFIX)/lib64 \
+	    && make $(MAKE_FLAGS) \
+	    && make install
+	$(making-end)
+
+isl_pass2:
+	$(making-start)
+	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(ISL) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
+	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
+	    ../configure \
+	    $(INSTALL_DIRS) \
+	    --enable-silent-rules \
+	    --disable-shared \
+	    --disable-dependency-tracking \
+	    --disable-nls \
+	    --with-gmp-prefix=$(ROOTFS_PREFIX) \
+	    && make $(MAKE_FLAGS) \
+	    && make install
+	$(making-end)
+
+cloog_pass2:
+	$(making-start)
+	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(CLOOG) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
+	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
+	    ../configure \
+	    $(INSTALL_DIRS) \
+	    --enable-silent-rules \
+	    --disable-shared \
+	    --disable-dependency-tracking \
+	    --disable-nls \
+	    --enable-fast-install \
+	    --with-isl-prefix=$(ROOTFS_PREFIX) \
+	    --with-gmp-prefix=$(ROOTFS_PREFIX) \
+	    && make $(MAKE_FLAGS) \
+	    && make install
+	$(making-end)
+
+gcc_pass2:
+	$(making-start)
+	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(GCC) $(DIR_WORKING)/$@
+	@cp replace_ld.sh $(DIR_WORKING)/$@
+	@cd $(DIR_WORKING)/$@; sh replace_ld.sh $(DIR_DIST)/rootfs
+	@cd $(DIR_WORKING)/$@; \
 	    cat gcc/limitx.h gcc/glimits.h gcc/limity.h > $(shell dirname $(shell $(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc -print-libgcc-file-name))/include-fixed/limits.h
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$(GCC)/gcc-build; \
 	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
@@ -329,11 +401,9 @@ compiler: $(ISL) $(CLOOG)
 	    --disable-multilib \
 	    --disable-bootstrap \
 	    --disable-libgomp \
-	    && make -j4 && make install
+	    && make $(MAKE_FLAGS) \
+	    && make install
 	$(making-end)
-
-compiler_clean:
-	rm -fv $(ISL) $(CLOOG)
 
 all_packages:
 	@install -m 775 init $(DIR_DIST)/rootfs/
