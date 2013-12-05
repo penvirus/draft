@@ -1,25 +1,21 @@
 include ../common.mk
 
 ROOTFS := $(DIR_DIST)/rootfs
-ROOTFS_USR := $(ROOTFS)/usr
-ROOTFS_LIB := $(ROOTFS)/usr/lib64
-ROOTFS_ETC := $(ROOTFS)/etc
-ROOTFS_VAR := $(ROOTFS)/var
-ROOTFS_PREFIX := $(ROOTFS_USR)
+ROOTFS_PREFIX := $(ROOTFS)/usr
 
 INSTALL_DIRS := \
     --prefix=$(ROOTFS_PREFIX) \
-    --libdir=$(ROOTFS_LIB) \
-    --sysconfdir=$(ROOTFS_ETC) \
-    --localstatedir=$(ROOTFS_VAR)
+    --libdir=$(ROOTFS_PREFIX)/lib64 \
+    --sysconfdir=$(ROOTFS)/etc \
+    --localstatedir=$(ROOTFS)/var
 
 BINUTILS := binutils-2.24.51
-GCC := gcc-4.8.2
-MPFR := mpfr-3.1.2
 GMP := gmp-5.1.3
+MPFR := mpfr-3.1.2
 MPC := mpc-1.0.1
 ISL := isl-0.11.1
 CLOOG := cloog-0.18.0
+GCC := gcc-4.8.2
 GLIBC := glibc-2.18
 
 BASH := bash-4.2
@@ -36,7 +32,7 @@ all: toolchain all_packages
 TOOLCHAIN := binutils gmp mpfr mpc isl cloog gcc
 
 toolchain:
-	mkdir -pv $(ROOTFS_LIB)
+	mkdir -pv $(ROOTFS)/usr/lib64
 	test -e $(ROOTFS)/usr/lib || ln -sv ./lib64 $(ROOTFS)/usr/lib
 	test -e $(ROOTFS)/lib || ln -sv ./usr/lib64 $(ROOTFS)/lib
 	test -e $(ROOTFS)/lib64 || ln -sv ./usr/lib64 $(ROOTFS)/lib64
@@ -63,7 +59,7 @@ binutils_pass1:
 	    $(INSTALL_DIRS) \
 	    --target=$(CROSS_COMPILE_TARGET) \
 	    --with-sysroot=$(ROOTFS) \
-	    --with-lib-path=$(ROOTFS_LIB) \
+	    --with-lib-path=$(ROOTFS_PREFIX)/lib64 \
 	    --disable-nls \
 	    --disable-werror \
 	    && make $(MAKE_FLAGS) \
@@ -81,7 +77,6 @@ gmp_pass1:
 	    --disable-shared \
 	    --enable-static \
 	    --enable-fast-install \
-	    --with-gnu-ld \
 	    --disable-nls \
 	    && make $(MAKE_FLAGS) \
 	    && make install
@@ -102,7 +97,6 @@ mpfr_pass1:
 	    --disable-nls \
 	    --with-gmp-include=$(ROOTFS_PREFIX)/include \
 	    --with-gmp-lib=$(ROOTFS_PREFIX)/lib64 \
-	    --with-gnu-ld \
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
@@ -124,7 +118,6 @@ mpc_pass1:
 	    --with-gmp-lib=$(ROOTFS_PREFIX)/lib64 \
 	    --with-mpfr-include=$(ROOTFS_PREFIX)/include \
 	    --with-mpfr-lib=$(ROOTFS_PREFIX)/lib64 \
-	    --with-gnu-ld \
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
@@ -144,7 +137,6 @@ isl_pass1:
 	    --enable-fast-install \
 	    --disable-nls \
 	    --with-gmp-prefix=$(ROOTFS_PREFIX) \
-	    --with-gnu-ld \
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
@@ -165,7 +157,6 @@ cloog_pass1:
 	    --disable-nls \
 	    --with-isl-prefix=$(ROOTFS_PREFIX) \
 	    --with-gmp-prefix=$(ROOTFS_PREFIX) \
-	    --with-gnu-ld \
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
@@ -225,6 +216,7 @@ glibc:
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
 	    ../configure \
+	    --host=$(CROSS_COMPILE_TARGET) \
 	    $(INSTALL_DIRS) \
 	    --enable-stackguard-randomization \
 	    --with-headers=$(ROOTFS_PREFIX)/include \
@@ -235,13 +227,12 @@ glibc:
 	    libc_cv_ctors_header=yes \
 	    && make $(MAKE_FLAGS) \
 	    && make install
-	@cp -v $(ROOTFS_LIB)/libc.so{,.bak}
-	@cp -v $(ROOTFS_LIB)/libpthread.so{,.bak}
-	@sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libc.so
-	@sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libpthread.so
+	@cp -v $(ROOTFS_PREFIX)/lib64/libc.so{,.bak}
+	@cp -v $(ROOTFS_PREFIX)/lib64/libpthread.so{,.bak}
+	@sed -i 's@$(ROOTFS)@@g' $(ROOTFS_PREFIX)/lib64/libc.so
+	@sed -i 's@$(ROOTFS)@@g' $(ROOTFS_PREFIX)/lib64/libpthread.so
 	$(making-end)
 	exit 1
-	    #--host=$(CROSS_COMPILE_TARGET)
 	#CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 
@@ -276,7 +267,7 @@ binutils_pass2:
 	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
 	    ../configure \
 	    $(INSTALL_DIRS) \
-	    --with-lib-path=$(ROOTFS_LIB) \
+	    --with-lib-path=$(ROOTFS_PREFIX)/lib64 \
 	    --with-sysroot \
 	    --disable-nls \
 	    && make $(MAKE_FLAGS) \
@@ -296,7 +287,6 @@ gmp_pass2:
 	    --disable-shared \
 	    --enable-static \
 	    --enable-fast-install \
-	    --with-gnu-ld \
 	    --disable-nls \
 	    && make $(MAKE_FLAGS) \
 	    && make install
@@ -318,7 +308,6 @@ mpfr_pass2:
 	    --disable-nls \
 	    --with-gmp-include=$(ROOTFS_PREFIX)/include \
 	    --with-gmp-lib=$(ROOTFS_PREFIX)/lib64 \
-	    --with-gnu-ld \
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
@@ -341,7 +330,6 @@ mpc_pass2:
 	    --with-gmp-lib=$(ROOTFS_PREFIX)/lib64 \
 	    --with-mpfr-include=$(ROOTFS_PREFIX)/include \
 	    --with-mpfr-lib=$(ROOTFS_PREFIX)/lib64 \
-	    --with-gnu-ld \
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
@@ -363,7 +351,6 @@ isl_pass2:
 	    --enable-fast-install \
 	    --disable-nls \
 	    --with-gmp-prefix=$(ROOTFS_PREFIX) \
-	    --with-gnu-ld \
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
@@ -387,7 +374,6 @@ cloog_pass2:
 	    --disable-nls \
 	    --with-isl-prefix=$(ROOTFS_PREFIX) \
 	    --with-gmp-prefix=$(ROOTFS_PREFIX) \
-	    --with-gnu-ld \
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
@@ -472,7 +458,6 @@ $(COREUTIL):
 	    $(INSTALL_DIRS) \
 	    --enable-install-program=hostname \
 	    --disable-nls \
-	    --with-gnu-ld \
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
