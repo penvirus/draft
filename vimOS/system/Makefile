@@ -20,7 +20,6 @@ GMP := gmp-5.1.3
 MPC := mpc-1.0.1
 ISL := isl-0.11.1
 CLOOG := cloog-0.18.0
-GLIBC_LIBIDN := glibc-libidn-2.10.1
 GLIBC := glibc-2.18
 
 BASH := bash-4.2
@@ -225,14 +224,10 @@ glibc:
 	@mv -v $(DIR_WORKING)/$(GLIBC) $(DIR_WORKING)/$@
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
-	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 	    ../configure \
 	    $(INSTALL_DIRS) \
-	    --host=$(CROSS_COMPILE_TARGET) \
 	    --enable-stackguard-randomization \
 	    --with-headers=$(ROOTFS_PREFIX)/include \
-	    --disable-profile \
 	    --enable-kernel=2.6.32 \
 	    --disable-nls \
 	    libc_cv_forced_unwind=yes \
@@ -240,11 +235,15 @@ glibc:
 	    libc_cv_ctors_header=yes \
 	    && make $(MAKE_FLAGS) \
 	    && make install
+	@cp -v $(ROOTFS_LIB)/libc.so{,.bak}
+	@cp -v $(ROOTFS_LIB)/libpthread.so{,.bak}
+	@sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libc.so
+	@sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libpthread.so
 	$(making-end)
-	cp -v $(ROOTFS_LIB)/libc.so{,.bak}
-	cp -v $(ROOTFS_LIB)/libpthread.so{,.bak}
-	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libc.so
-	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libpthread.so
+	exit 1
+	    #--host=$(CROSS_COMPILE_TARGET)
+	#CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+	CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 
 libstdc_plus_plus:
 	$(making-start)
