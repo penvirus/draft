@@ -49,12 +49,10 @@ toolchain:
 
 toolchain_clean:
 	rm -f $(addsuffix _pass1, $(TOOLCHAIN))
-	rm -f $(addsuffix _pass2, $(TOOLCHAIN))
 	rm -f glibc
 	rm -f kernel_header
 	rm -f libstdc_plus_plus
-	rm -f binutils
-	rm -f compiler
+	rm -f $(addsuffix _pass2, $(TOOLCHAIN))
 
 binutils_pass1:
 	$(making-start)
@@ -229,12 +227,8 @@ glibc:
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
-	cp -v $(ROOTFS_LIB)/libc.so $(ROOTFS_LIB)/libc.so.new
-	cp -v $(ROOTFS_LIB)/libpthread.so $(ROOTFS_LIB)/libpthread.so.new
-	cp -v $(ROOTFS_LIB)/libc.so $(ROOTFS_LIB)/libc.so.old
-	cp -v $(ROOTFS_LIB)/libpthread.so $(ROOTFS_LIB)/libpthread.so.old
-	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libc.so.new
-	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libpthread.so.new
+	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libc.so
+	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_LIB)/libpthread.so
 
 libstdc_plus_plus:
 	$(making-start)
@@ -259,14 +253,14 @@ libstdc_plus_plus:
 binutils_pass2:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(BINUTILS).tar.bz2 -C $(DIR_WORKING)
-	@mkdir -pv $(DIR_WORKING)/$(BINUTILS)/binutils-build
-	@cd $(DIR_WORKING)/$(BINUTILS)/binutils-build; \
+	@mv -v $(DIR_WORKING)/$(BINUTILS) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
 	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
 	    ../configure \
 	    $(INSTALL_DIRS) \
-	    --host=$(CROSS_COMPILE_TARGET) \
 	    --with-lib-path=$(ROOTFS_LIB) \
 	    --with-sysroot \
 	    --disable-nls \
@@ -393,6 +387,7 @@ gcc_pass2:
 	    ../configure \
 	    $(INSTALL_DIRS) \
 	    --with-local-prefix=$(ROOTFS_PREFIX) \
+	    --with-build-sysroot=$(ROOTFS) \
 	    --with-sysroot=$(ROOTFS) \
 	    --with-gmp=$(ROOTFS_PREFIX) \
 	    --with-mpfr=$(ROOTFS_PREFIX) \
@@ -411,7 +406,6 @@ gcc_pass2:
 	    && make $(MAKE_FLAGS) \
 	    && make install
 	$(making-end)
-	    #--with-build-sysroot=$(ROOTFS)
 
 all_packages:
 	@install -m 775 init $(DIR_DIST)/rootfs/
