@@ -15,10 +15,11 @@ pre_build:
 	@mkdir -pv $(DIR_WORKING)
 	@mkdir -pv $(DIR_DIST)
 	@mkdir -pv $(DIR_DIST)/rootfs/
-	@mkdir -pv $(DIR_DIST)/rootfs/dev/
 	@mkdir -pv $(DIR_DIST)/rootfs/boot/
 	@mkdir -pv $(DIR_DIST)/rootfs/etc/
+	@mkdir -pv $(DIR_DIST)/rootfs/var/
 	@mkdir -pv $(DIR_DIST)/rootfs/usr/
+	@mkdir -pv $(DIR_DIST)/rootfs/usr/bin
 	@mkdir -pv $(DIR_DIST)/rootfs/usr/lib64
 	@test -e $(DIR_DIST)/rootfs/bin || ln -sv ./usr/bin $(DIR_DIST)/rootfs/bin
 	@test -e $(DIR_DIST)/rootfs/usr/lib || ln -sv ./lib64 $(DIR_DIST)/rootfs/usr/lib

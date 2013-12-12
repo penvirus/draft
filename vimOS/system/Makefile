@@ -1,14 +1,22 @@
 include ../common.mk
 
 ROOTFS := $(DIR_DIST)/rootfs
+ROOTFS_PREFIX := $(DIR_DIST)/rootfs/usr
+
+INSTALL_DIRS := \
+    --prefix=$(ROOTFS_PREFIX) \
+    --libdir=$(ROOTFS_PREFIX)/lib64 \
+    --sysconfdir=$(ROOTFS)/etc \
+    --localstatedir=$(ROOTFS)/var
+
 TEMP_ROOTFS := $(DIR_DIST)/rootfs/tools
-TEMP_ROOTFS_PREFIX := $(TEMP_ROOTFS)/usr
+TEMP_ROOTFS_PREFIX := /tools
 
 TEMP_INSTALL_DIRS := \
     --prefix=$(TEMP_ROOTFS_PREFIX) \
     --libdir=$(TEMP_ROOTFS_PREFIX)/lib64 \
-    --sysconfdir=$(TEMP_ROOTFS)/etc \
-    --localstatedir=$(TEMP_ROOTFS)/var
+    --sysconfdir=$(TEMP_ROOTFS_PREFIX)/etc \
+    --localstatedir=$(TEMP_ROOTFS_PREFIX)/var
 
 BINUTILS := binutils-2.24.51
 GMP := gmp-5.1.3
@@ -34,10 +42,9 @@ TOOLCHAIN := binutils gmp mpfr mpc isl cloog gcc
 
 toolchain:
 	@mkdir -pv $(TEMP_ROOTFS)
-	@mkdir -pv $(TEMP_ROOTFS)/usr
 	@mkdir -pv $(TEMP_ROOTFS)/lib64
-	@mkdir -pv $(TEMP_ROOTFS)/etc
-	@mkdir -pv $(TEMP_ROOTFS)/var
+	@test -e $(TEMP_ROOTFS)/lib || ln -sv ./lib64 $(TEMP_ROOTFS)/lib
+	@test -e /tools || sudo ln -s $(TEMP_ROOTFS) /tools
 	make $(addsuffix _pass1, $(TOOLCHAIN))
 	make kernel_header
 	make glibc
@@ -232,12 +239,7 @@ glibc:
 	    libc_cv_ctors_header=yes \
 	    && make $(MAKE_FLAGS) \
 	    && make install
-	@cp -v $(TEMP_ROOTFS_PREFIX)/lib64/libc.so{,.bak}
-	@cp -v $(TEMP_ROOTFS_PREFIX)/lib64/libpthread.so{,.bak}
-	@sed -i 's@$(ROOTFS)@@g' $(TEMP_ROOTFS_PREFIX)/lib64/libc.so
-	@sed -i 's@$(ROOTFS)@@g' $(TEMP_ROOTFS_PREFIX)/lib64/libpthread.so
 	$(making-end)
-	exit 1
 
 libstdc_plus_plus:
 	$(making-start)
@@ -385,8 +387,8 @@ gcc_pass2:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(GCC) $(DIR_WORKING)/$@
-	#@cp -v replace_ld.sh $(DIR_WORKING)/$@/
-	#@cd $(DIR_WORKING)/$@; sh replace_ld.sh $(DIR_DIST)/rootfs
+	@cp -v replace_ld.sh $(DIR_WORKING)/$@/
+	@cd $(DIR_WORKING)/$@; sh replace_ld.sh $(DIR_DIST)/rootfs
 	@cd $(DIR_WORKING)/$@; \
 	    cat gcc/limitx.h gcc/glimits.h gcc/limity.h > $(shell dirname $(shell $(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc -print-libgcc-file-name))/include-fixed/limits.h
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
@@ -397,9 +399,7 @@ gcc_pass2:
 	    RANLIB=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ranlib \
 	    ../configure \
 	    $(TEMP_INSTALL_DIRS) \
-	    --with-build-sysroot=$(ROOTFS) \
 	    --with-local-prefix=$(TEMP_ROOTFS_PREFIX) \
-	    --with-sysroot=$(ROOTFS) \
 	    --with-gmp=$(TEMP_ROOTFS_PREFIX) \
 	    --with-mpfr=$(TEMP_ROOTFS_PREFIX) \
 	    --with-mpc=$(TEMP_ROOTFS_PREFIX) \
@@ -418,6 +418,8 @@ gcc_pass2:
 	    && make install
 	$(making-end)
 	@test -e $(TEMP_ROOTFS_PREFIX)/bin/cc || ln -sv ./gcc $(TEMP_ROOTFS_PREFIX)/bin/cc
+	    #--with-build-sysroot=$(ROOTFS)
+	    #--with-sysroot=$(ROOTFS)
 
 all_packages:
 	@install -m 775 init $(DIR_DIST)/rootfs/
@@ -430,6 +432,7 @@ $(BASH):
 	@tar zxf $(DIR_3RD_PARTY)/$(BASH).tar.gz -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
+	    CC=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    ../configure \
 	    $(TEMP_INSTALL_DIRS) \
 	    --enable-alias \
@@ -457,6 +460,7 @@ $(COREUTIL):
 	@tar xJf $(DIR_3RD_PARTY)/$(COREUTIL).tar.xz -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
+	    CC=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    ../configure \
 	    $(TEMP_INSTALL_DIRS) \
 	    --enable-install-program=hostname \
