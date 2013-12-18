@@ -268,8 +268,8 @@ glibc:
 	    make install
 	cp -v $(ROOTFS_PREFIX)/lib64/libc.so{,.bak}
 	cp -v $(ROOTFS_PREFIX)/lib64/libpthread.so{,.bak}
-	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_PREFIX)/lib64/libc.so
-	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_PREFIX)/lib64/libpthread.so
+	#sed -i 's@$(ROOTFS)@@g' $(ROOTFS_PREFIX)/lib64/libc.so
+	#sed -i 's@$(ROOTFS)@@g' $(ROOTFS_PREFIX)/lib64/libpthread.so
 	$(making-end)
 
 libstdc_plus_plus:
@@ -443,7 +443,7 @@ cloog_pass2:
 	$(making-end)
 
 gcc_pass2:
-	exit 1
+	    #--host=$(CROSS_COMPILE_TARGET)
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(GCC) $(DIR_WORKING)/$@
@@ -453,6 +453,7 @@ gcc_pass2:
 	    cat gcc/limitx.h gcc/glimits.h gcc/limity.h > $(shell dirname $(shell $(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc -print-libgcc-file-name))/include-fixed/limits.h
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
+	    PATH=$(ROOTFS_PREFIX)/bin:$${PATH} \
 	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 	    CXX=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 	    AR=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
@@ -473,13 +474,18 @@ gcc_pass2:
 	    --disable-libstdcxx-pch \
 	    --disable-multilib \
 	    --disable-bootstrap \
-	    --disable-libgomp \
-	    && make $(MAKE_FLAGS) \
-	    && make install
+	    --disable-libgomp
+	@cd $(DIR_WORKING)/$@/$@_build; \
+	    PATH=$(ROOTFS_PREFIX)/bin:$${PATH} \
+	    make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+	    PATH=$(ROOTFS_PREFIX)/bin:$${PATH} \
+	    make install
 	$(making-end)
 	@test -e $(ROOTFS_PREFIX)/bin/cc || ln -sv ./gcc $(ROOTFS_PREFIX)/bin/cc
 	    #--with-build-sysroot=$(ROOTFS)
 	    #--with-sysroot=$(ROOTFS)
+	exit 1
 
 all_packages:
 	@install -m 775 init $(ROOTFS)
