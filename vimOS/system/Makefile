@@ -31,13 +31,9 @@ all:
 	@test -e $(TEMP_ROOTFS)/lib || ln -sv ./usr/lib64 $(TEMP_ROOTFS)/lib
 	@test -e $(TEMP_ROOTFS)/lib64 || ln -sv ./usr/lib64 $(TEMP_ROOTFS)/lib64
 	@test -e $(TEMP_ROOTFS)/usr/lib || ln -sv ./lib64 $(TEMP_ROOTFS)/usr/lib
-	make \
-		ROOTFS="$(TEMP_ROOTFS)" \
-		ROOTFS_PREFIX="$(TEMP_ROOTFS_PREFIX)" \
-		INSTALL_DIRS="$(TEMP_INSTALL_DIRS)" \
-		TEMP_TOOL=1 \
-		toolchain
+	make temp_toolchain
 	exit 1
+	make toolchain
 	make all_packages
 
 include toolchain.mk
@@ -90,7 +86,9 @@ $(COREUTIL):
 		&& make install
 	$(making-end)
 
-clean: toolchain_clean
+clean:
+	make temp_toolchain_clean
+	make toolchain_clean
 	@rm -f $(PKGS)
 	@rm -f *.making
 
