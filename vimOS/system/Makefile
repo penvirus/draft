@@ -2,14 +2,19 @@ include ../common.mk
 
 ROOTFS := $(DIR_DIST)/rootfs
 ROOTFS_PREFIX := $(DIR_DIST)/rootfs/usr
-
 INSTALL_DIRS := \
-    --prefix=$(ROOTFS_PREFIX) \
-    --libdir=$(ROOTFS_PREFIX)/lib64 \
-    --sysconfdir=$(ROOTFS)/etc \
-    --localstatedir=$(ROOTFS)/var
+	--prefix=$(ROOTFS_PREFIX) \
+	--libdir=$(ROOTFS_PREFIX)/lib64 \
+	--sysconfdir=$(ROOTFS)/etc \
+	--localstatedir=$(ROOTFS)/var
 
-include toolchain.mk
+TEMP_ROOTFS := $(DIR_WORKING)/temp_rootfs
+TEMP_ROOTFS_PREFIX := $(DIR_WORKING)/temp_rootfs/usr
+TEMP_INSTALL_DIRS := \
+	--prefix=$(TEMP_ROOTFS_PREFIX) \
+	--libdir=$(TEMP_ROOTFS_PREFIX)/lib64 \
+	--sysconfdir=$(TEMP_ROOTFS)/etc \
+	--localstatedir=$(TEMP_ROOTFS)/var
 
 BASH := bash-4.2
 COREUTIL := coreutils-8.21
@@ -17,12 +22,30 @@ COREUTIL := coreutils-8.21
 PKGS += $(BASH)
 PKGS += $(COREUTIL)
 
-all: toolchain all_packages
+all:
+	@mkdir -pv $(TEMP_ROOTFS)
+	@mkdir -pv $(TEMP_ROOTFS)/usr
+	@mkdir -pv $(TEMP_ROOTFS)/usr/bin
+	@mkdir -pv $(TEMP_ROOTFS)/usr/lib64
+	@test -e $(TEMP_ROOTFS)/bin || ln -sv ./usr/bin $(TEMP_ROOTFS)/bin
+	@test -e $(TEMP_ROOTFS)/lib || ln -sv ./usr/lib64 $(TEMP_ROOTFS)/lib
+	@test -e $(TEMP_ROOTFS)/lib64 || ln -sv ./usr/lib64 $(TEMP_ROOTFS)/lib64
+	@test -e $(TEMP_ROOTFS)/usr/lib || ln -sv ./lib64 $(TEMP_ROOTFS)/usr/lib
+	make \
+		ROOTFS="$(TEMP_ROOTFS)" \
+		ROOTFS_PREFIX="$(TEMP_ROOTFS_PREFIX)" \
+		INSTALL_DIRS="$(TEMP_INSTALL_DIRS)" \
+		TEMP_TOOL=1 \
+		toolchain
+	exit 1
+	make all_packages
+
+include toolchain.mk
 
 all_packages:
 	@install -m 775 init $(ROOTFS)
 	@for pkg in $(PKGS); do \
-	    $(MAKE) $$pkg || exit 1; \
+		$(MAKE) $$pkg || exit 1; \
 	done
 
 $(BASH):
@@ -30,27 +53,27 @@ $(BASH):
 	@tar zxf $(DIR_3RD_PARTY)/$(BASH).tar.gz -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
-	    ../configure \
-	    $(INSTALL_DIRS) \
-	    --enable-alias \
-	    --enable-arith-for-command \
-	    --enable-array-variables \
-	    --enable-brace-expansion \
-	    --enable-debugger \
-	    --enable-directory-stack \
-	    --enable-dparen-arithmetic \
-	    --enable-help-builtin \
-	    --enable-history \
-	    --enable-job-control \
-	    --enable-net-redirections \
-	    --enable-readline \
-	    --disable-nls \
-	    --enable-select \
-	    --disable-rpath \
-	    --with-gnu-malloc \
-	    && make $(MAKE_FLAGS) \
-	    && make install
+		CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+		../configure \
+		$(INSTALL_DIRS) \
+		--enable-alias \
+		--enable-arith-for-command \
+		--enable-array-variables \
+		--enable-brace-expansion \
+		--enable-debugger \
+		--enable-directory-stack \
+		--enable-dparen-arithmetic \
+		--enable-help-builtin \
+		--enable-history \
+		--enable-job-control \
+		--enable-net-redirections \
+		--enable-readline \
+		--disable-nls \
+		--enable-select \
+		--disable-rpath \
+		--with-gnu-malloc \
+		&& make $(MAKE_FLAGS) \
+		&& make install
 	$(making-end)
 
 $(COREUTIL):
@@ -58,13 +81,13 @@ $(COREUTIL):
 	@tar xJf $(DIR_3RD_PARTY)/$(COREUTIL).tar.xz -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-	    CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
-	    ../configure \
-	    $(INSTALL_DIRS) \
-	    --enable-install-program=hostname \
-	    --disable-nls \
-	    && make $(MAKE_FLAGS) \
-	    && make install
+		CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+		../configure \
+		$(INSTALL_DIRS) \
+		--enable-install-program=hostname \
+		--disable-nls \
+		&& make $(MAKE_FLAGS) \
+		&& make install
 	$(making-end)
 
 clean: toolchain_clean

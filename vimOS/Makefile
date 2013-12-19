@@ -31,7 +31,7 @@ $(SUBDIRS): pre_build
 
 clean:
 	@for sub in $(SUBDIRS); do \
-	    $(MAKE) -C $$sub $@; \
+		$(MAKE) -C $$sub $@; \
 	done
 	@rm -rf $(DIR_WORKING)
 	@rm -rf $(DIR_DIST)
