@@ -62,16 +62,38 @@ glibc:
 		READELF=$(TEMP_ROOTFS_PREFIX)/bin/readelf \
 		../configure \
 		$(INSTALL_DIRS) \
-		--enable-stackguard-randomization \
 		--with-headers=$(ROOTFS_PREFIX)/include \
 		--disable-profile \
-		--enable-kernel=2.6.32 \
-		--disable-nls \
-		libc_cv_forced_unwind=yes \
-		libc_cv_c_cleanup=yes \
-		libc_cv_ctors_header=yes
+		--enable-kernel=2.6.32
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		cp -v config.make{,.fake}; \
+		cp -v config.status{,.fake};
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
+		AR=$(TEMP_ROOTFS_PREFIX)/bin/ar \
+		AS=$(TEMP_ROOTFS_PREFIX)/bin/as \
+		LD=$(TEMP_ROOTFS_PREFIX)/bin/ld \
+		NM=$(TEMP_ROOTFS_PREFIX)/bin/nm \
+		RANLIB=$(TEMP_ROOTFS_PREFIX)/bin/ranlib \
+		STRIP=$(TEMP_ROOTFS_PREFIX)/bin/strip \
+		OBJCOPY=$(TEMP_ROOTFS_PREFIX)/bin/objcopy \
+		OBJDUMP=$(TEMP_ROOTFS_PREFIX)/bin/objdump \
+		READELF=$(TEMP_ROOTFS_PREFIX)/bin/readelf \
+		../configure \
+		$(FAKE_INSTALL_DIRS) \
+		--with-headers=$(ROOTFS_PREFIX)/include \
+		--disable-profile \
+		--enable-kernel=2.6.32
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		fake_mtime=`stat config.make | grep 'Modify:' | cut -d' ' -f2-`; \
+		mv -v config.make.fake config.make; \
+		touch -d "$$fake_mtime" config.make; \
+		fake_mtime=`stat config.status | grep 'Modify:' | cut -d' ' -f2-`; \
+		mv -v config.status.fake config.status; \
+		touch -d "$$fake_mtime" config.make;
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	sed -i 's@$(ROOTFS)@@g' $(ROOTFS_PREFIX)/lib64/libc.so
@@ -104,6 +126,8 @@ mpfr:
 	@mv -v $(DIR_WORKING)/$(MPFR) $(DIR_WORKING)/$@
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
 		../configure \
 		$(INSTALL_DIRS) \
 		--disable-dependency-tracking \

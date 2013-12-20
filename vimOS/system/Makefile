@@ -8,6 +8,12 @@ INSTALL_DIRS := \
 	--sysconfdir=$(ROOTFS)/etc \
 	--localstatedir=$(ROOTFS)/var
 
+FAKE_INSTALL_DIRS := \
+	--prefix=/usr \
+	--libdir=/usr/lib64 \
+	--sysconfdir=/etc \
+	--localstatedir=/var
+	
 TEMP_ROOTFS := $(DIR_WORKING)/temp_rootfs
 TEMP_ROOTFS_PREFIX := $(DIR_WORKING)/temp_rootfs/usr
 TEMP_INSTALL_DIRS := \
@@ -32,7 +38,6 @@ all:
 	@test -e $(TEMP_ROOTFS)/lib64 || ln -sv ./usr/lib64 $(TEMP_ROOTFS)/lib64
 	@test -e $(TEMP_ROOTFS)/usr/lib || ln -sv ./lib64 $(TEMP_ROOTFS)/usr/lib
 	make temp_toolchain
-	exit 1
 	make toolchain
 	make all_packages
 
