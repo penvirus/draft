@@ -13,12 +13,12 @@ toolchain:
 	make binutils
 	make kernel_header
 	make glibc
+	make gmp mpfr mpc isl cloog
+	make gcc
 	@cp -v $(ROOTFS_PREFIX)/lib64/libc.so.orig $(ROOTFS_PREFIX)/lib64/libc.so
 	@cp -v $(ROOTFS_PREFIX)/lib64/libpthread.so.orig $(ROOTFS_PREFIX)/lib64/libpthread.so
-	make gmp mpfr mpc isl cloog
 	@cp -v $(ROOTFS_PREFIX)/lib64/libc.so.new $(ROOTFS_PREFIX)/lib64/libc.so
 	@cp -v $(ROOTFS_PREFIX)/lib64/libpthread.so.new $(ROOTFS_PREFIX)/lib64/libpthread.so
-	make gcc
 
 toolchain_clean:
 	rm -f binutils
@@ -33,15 +33,14 @@ binutils:
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		../configure \
-		--enable-option-checking \
 		$(INSTALL_DIRS) \
-		--with-sysroot \
 		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
+		#--with-sysroot
 
 kernel_header:
 	$(making-start)
@@ -69,7 +68,6 @@ glibc:
 		OBJDUMP=$(TEMP_ROOTFS_PREFIX)/bin/objdump \
 		READELF=$(TEMP_ROOTFS_PREFIX)/bin/readelf \
 		../configure \
-		--enable-option-checking \
 		$(INSTALL_DIRS) \
 		--with-headers=$(ROOTFS_PREFIX)/include \
 		--disable-profile \
@@ -90,7 +88,6 @@ glibc:
 		OBJDUMP=$(TEMP_ROOTFS_PREFIX)/bin/objdump \
 		READELF=$(TEMP_ROOTFS_PREFIX)/bin/readelf \
 		../configure \
-		--enable-option-checking \
 		$(FAKE_INSTALL_DIRS) \
 		--with-headers=$(ROOTFS_PREFIX)/include \
 		--disable-profile \
@@ -123,7 +120,6 @@ gmp:
 		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
 		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
 		../configure \
-		--enable-option-checking \
 		$(INSTALL_DIRS) \
 		--enable-fast-install \
 		--disable-nls
@@ -139,9 +135,8 @@ mpfr:
 	@mv -v $(DIR_WORKING)/$(MPFR) $(DIR_WORKING)/$@
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		CC="$(TEMP_ROOTFS_PREFIX)/bin/gcc --sysroot=$(ROOTFS)" \
 		../configure \
-		--enable-option-checking \
 		$(INSTALL_DIRS) \
 		--enable-static \
 		--disable-shared \
@@ -162,9 +157,8 @@ mpc:
 	@mv -v $(DIR_WORKING)/$(MPC) $(DIR_WORKING)/$@
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		CC="$(TEMP_ROOTFS_PREFIX)/bin/gcc --sysroot=$(ROOTFS)" \
 		../configure \
-		--enable-option-checking \
 		$(INSTALL_DIRS) \
 		--enable-static \
 		--disable-shared \
@@ -183,14 +177,19 @@ mpc:
 
 isl:
 	$(making-start)
+	@cp -v ${TEMP_ROOTFS_PREFIX}/lib64/libisl.a ${ROOTFS_PREFIX}/lib64/
+	@cp -v ${TEMP_ROOTFS_PREFIX}/lib64/libisl.la ${ROOTFS_PREFIX}/lib64/
+	$(making-end)
+
+isl2:
+	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(ISL) $(DIR_WORKING)/$@
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
-		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
+		CC="$(TEMP_ROOTFS_PREFIX)/bin/gcc --sysroot=$(TEMP_ROOTFS) -Wl,--sysroot=$(TEMP_ROOTFS)" \
+		CXX="$(TEMP_ROOTFS_PREFIX)/bin/g++ -Wl,--sysroot=$(ROOTFS)" \
 		../configure \
-		--enable-option-checking \
 		$(INSTALL_DIRS) \
 		--enable-static \
 		--disable-shared \
@@ -200,21 +199,27 @@ isl:
 		--disable-nls \
 		--with-gmp-prefix=$(ROOTFS_PREFIX)
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		make $(MAKE_FLAGS)
+		make
+		#make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
 
 cloog:
 	$(making-start)
+	@cp -v ${TEMP_ROOTFS_PREFIX}/lib64/libcloog-isl.a ${ROOTFS_PREFIX}/lib64/
+	@cp -v ${TEMP_ROOTFS_PREFIX}/lib64/libcloog-isl.la ${ROOTFS_PREFIX}/lib64/
+	$(making-end)
+
+cloog2:
+	$(making-start)
 	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(CLOOG) $(DIR_WORKING)/$@
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		CC="$(TEMP_ROOTFS_PREFIX)/bin/gcc --sysroot=$(ROOTFS) -Wl,--sysroot=$(ROOTFS)" \
 		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
 		../configure \
-		--enable-option-checking \
 		$(INSTALL_DIRS) \
 		--enable-static \
 		--disable-shared \
@@ -229,7 +234,6 @@ cloog:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
-	exit 1
 
 gcc:
 	$(making-start)
@@ -238,8 +242,7 @@ gcc:
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	#@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$@/gcc/configure
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		LD_LIBRARY_PATH=$(ROOTFS) \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		CC="$(TEMP_ROOTFS_PREFIX)/bin/gcc --sysroot=$(TEMP_ROOTFS) -Wl,--sysroot=$(TEMP_ROOTFS)" \
 		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
 		AR=$(ROOTFS_PREFIX)/bin/ar \
 		AS=$(ROOTFS_PREFIX)/bin/as \
@@ -251,19 +254,13 @@ gcc:
 		OBJDUMP=$(ROOTFS_PREFIX)/bin/objdump \
 		READELF=$(ROOTFS_PREFIX)/bin/readelf \
 		../configure \
-		--enable-option-checking \
 		$(INSTALL_DIRS) \
 		--with-build-sysroot=$(ROOTFS) \
-		--with-gmp-include=$(ROOTFS_PREFIX)/include \
-		--with-gmp-lib=$(ROOTFS_PREFIX)/lib64 \
-		--with-mpfr-include=$(ROOTFS_PREFIX)/include \
-		--with-mpfr-lib=$(ROOTFS_PREFIX)/lib64 \
-		--with-mpc-include=$(ROOTFS_PREFIX)/include \
-		--with-mpc-lib=$(ROOTFS_PREFIX)/lib64 \
-		--with-isl-include=$(ROOTFS_PREFIX)/include \
-		--with-isl-lib=$(ROOTFS_PREFIX)/lib64 \
-		--with-cloog-include=$(ROOTFS_PREFIX)/include \
-		--with-cloog-lib=$(ROOTFS_PREFIX)/lib64 \
+		--with-gmp=$(ROOTFS_PREFIX) \
+		--with-mpfr=$(ROOTFS_PREFIX) \
+		--with-mpc=$(ROOTFS_PREFIX) \
+		--with-isl=$(ROOTFS_PREFIX) \
+		--with-cloog=$(ROOTFS_PREFIX) \
 		--enable-shared \
 		--enable-threads=posix \
 		--enable-__cxa_atexit \
@@ -285,6 +282,11 @@ temp_toolchain:
 	make temp_glibc
 	make temp_libstdc_plus_plus
 	make $(addsuffix _pass2, $(addprefix temp_, $(TOOLCHAIN)))
+	make temp_shared_gmp
+	#make temp_shared_mpfr
+	#make temp_shared_mpc
+	#make temp_shared_isl
+	#make temp_shared_cloog
 
 temp_toolchain_clean:
 	rm -f $(addsuffix _pass1, $(addprefix temp_, $(TOOLCHAIN)))
@@ -292,6 +294,7 @@ temp_toolchain_clean:
 	rm -f temp_glibc
 	rm -f temp_libstdc_plus_plus
 	rm -f $(addsuffix _pass2, $(addprefix temp_, $(TOOLCHAIN)))
+	rm -f temp_shared_gmp
 
 temp_binutils_pass1:
 	$(making-start)
@@ -300,10 +303,8 @@ temp_binutils_pass1:
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		../configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--target=$(CROSS_COMPILE_TARGET) \
-		--with-sysroot=$(TEMP_ROOTFS) \
 		--with-lib-path=$(TEMP_ROOTFS_PREFIX)/lib64 \
 		--disable-nls \
 		--disable-werror
@@ -312,6 +313,7 @@ temp_binutils_pass1:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
+		#--with-sysroot
 
 temp_gmp_pass1:
 	$(making-start)
@@ -320,7 +322,6 @@ temp_gmp_pass1:
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		../configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--enable-static \
 		--disable-shared \
@@ -339,7 +340,6 @@ temp_mpfr_pass1:
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		../configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--enable-static \
 		--disable-shared \
@@ -361,7 +361,6 @@ temp_mpc_pass1:
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		../configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--enable-static \
 		--disable-shared \
@@ -385,7 +384,6 @@ temp_isl_pass1:
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		../configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--enable-static \
 		--disable-shared \
@@ -407,7 +405,6 @@ temp_cloog_pass1:
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		../configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--enable-static \
 		--disable-shared \
@@ -433,11 +430,9 @@ temp_gcc_pass1:
 	@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$@/gcc/configure
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		../configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--target=$(CROSS_COMPILE_TARGET) \
 		--with-local-prefix=$(TEMP_ROOTFS_PREFIX) \
-		--with-sysroot=$(TEMP_ROOTFS) \
 		--with-gmp=$(TEMP_ROOTFS_PREFIX) \
 		--with-mpfr=$(TEMP_ROOTFS_PREFIX) \
 		--with-mpc=$(TEMP_ROOTFS_PREFIX) \
@@ -465,6 +460,7 @@ temp_gcc_pass1:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
+		#--with-sysroot=$(TEMP_ROOTFS)
 
 temp_kernel_header:
 	$(making-start)
@@ -482,7 +478,6 @@ temp_glibc:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--host=$(CROSS_COMPILE_TARGET) \
 		--enable-stackguard-randomization \
@@ -497,11 +492,14 @@ temp_glibc:
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
-	cp -v $(TEMP_ROOTFS_PREFIX)/lib64/libc.so{,.bak}
-	cp -v $(TEMP_ROOTFS_PREFIX)/lib64/libpthread.so{,.bak}
+	cp -v $(TEMP_ROOTFS_PREFIX)/lib64/libc.so{,.orig}
+	cp -v $(TEMP_ROOTFS_PREFIX)/lib64/libpthread.so{,.orig}
 	sed -i 's@$(TEMP_ROOTFS)@@g' $(TEMP_ROOTFS_PREFIX)/lib64/libc.so
 	sed -i 's@$(TEMP_ROOTFS)@@g' $(TEMP_ROOTFS_PREFIX)/lib64/libpthread.so
+	cp -v $(TEMP_ROOTFS_PREFIX)/lib64/libc.so{,.new}
+	cp -v $(TEMP_ROOTFS_PREFIX)/lib64/libpthread.so{,.new}
 	$(making-end)
 
 temp_libstdc_plus_plus:
@@ -512,7 +510,6 @@ temp_libstdc_plus_plus:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../libstdc++-v3/configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--host=$(CROSS_COMPILE_TARGET) \
 		--disable-multilib \
@@ -535,9 +532,27 @@ temp_binutils_pass2:
 	@mv -v $(DIR_WORKING)/$(BINUTILS) $(DIR_WORKING)/$@
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
-		--enable-option-checking \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+		$(TEMP_INSTALL_DIRS) \
+		--host=$(CROSS_COMPILE_TARGET) \
+		--with-build-sysroot=$(TEMP_ROOTFS) \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
+		make install
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
+		make -C ld clean;
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
+		make -C ld LIB_PATH=$(TEMP_ROOTFS_PREFIX)/lib64; \
+		cp -v ld/ld-new $(TEMP_ROOTFS_PREFIX)/bin/ld
+	$(making-end)
+		#CC=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 		CXX=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 		AR=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
 		AS=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-as \
@@ -548,29 +563,17 @@ temp_binutils_pass2:
 		OBJCOPY=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-objcopy \
 		OBJDUMP=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-objdump \
 		READELF=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-readelf \
-		$(TEMP_INSTALL_DIRS) \
-		--with-sysroot \
-		--with-build-sysroot=$(TEMP_ROOTFS) \
-		--disable-nls
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		make install
-	$(making-end)
+		#--with-sysroot
+
 
 temp_gmp_pass2:
 	$(making-start)
 	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(GMP) $(DIR_WORKING)/$@
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	#@cd $(DIR_WORKING)/$@/$@_build; \
-		cp -v $(DIR_WORKING)/temp_mpfr_pass1/config.guess ../
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--host=$(CROSS_COMPILE_TARGET) \
 		--disable-shared \
@@ -593,7 +596,6 @@ temp_mpfr_pass2:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--host=$(CROSS_COMPILE_TARGET) \
 		--disable-dependency-tracking \
@@ -619,7 +621,6 @@ temp_mpc_pass2:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--host=$(CROSS_COMPILE_TARGET) \
 		--disable-dependency-tracking \
@@ -647,7 +648,6 @@ temp_isl_pass2:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--host=$(CROSS_COMPILE_TARGET) \
 		--disable-silent-rules \
@@ -673,7 +673,6 @@ temp_cloog_pass2:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
-		--enable-option-checking \
 		$(TEMP_INSTALL_DIRS) \
 		--host=$(CROSS_COMPILE_TARGET) \
 		--disable-silent-rules \
@@ -716,7 +715,6 @@ temp_gcc_pass2:
 		../configure \
 		$(TEMP_INSTALL_DIRS) \
 		--with-build-sysroot=$(TEMP_ROOTFS) \
-		--with-sysroot=$(TEMP_ROOTFS) \
 		--with-gmp=$(TEMP_ROOTFS_PREFIX) \
 		--with-mpfr=$(TEMP_ROOTFS_PREFIX) \
 		--with-mpc=$(TEMP_ROOTFS_PREFIX) \
@@ -738,4 +736,109 @@ temp_gcc_pass2:
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	@test -e $(TEMP_ROOTFS_PREFIX)/bin/cc || ln -sv ./gcc $(TEMP_ROOTFS_PREFIX)/bin/cc
+	$(making-end)
+
+temp_shared_gmp:
+	$(making-start)
+	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(GMP) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		../configure \
+		$(TEMP_INSTALL_DIRS) \
+		--enable-static \
+		--enable-shared \
+		--enable-fast-install \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make install
+	$(making-end)
+
+temp_shared_mpfr:
+	$(making-start)
+	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(MPFR) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		../configure \
+		$(TEMP_INSTALL_DIRS) \
+		--enable-static \
+		--enable-shared \
+		--disable-dependency-tracking \
+		--enable-fast-install \
+		--disable-nls \
+		--with-gmp-include=$(TEMP_ROOTFS_PREFIX)/include \
+		--with-gmp-lib=$(TEMP_ROOTFS_PREFIX)/lib64
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make install
+	$(making-end)
+
+temp_shared_mpc:
+	$(making-start)
+	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(MPC) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		../configure \
+		$(TEMP_INSTALL_DIRS) \
+		--enable-static \
+		--enable-shared \
+		--disable-dependency-tracking \
+		--enable-fast-install \
+		--disable-nls \
+		--with-gmp-include=$(TEMP_ROOTFS_PREFIX)/include \
+		--with-gmp-lib=$(TEMP_ROOTFS_PREFIX)/lib64 \
+		--with-mpfr-include=$(TEMP_ROOTFS_PREFIX)/include \
+		--with-mpfr-lib=$(TEMP_ROOTFS_PREFIX)/lib64
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make install
+	$(making-end)
+
+temp_shared_isl:
+	$(making-start)
+	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(ISL) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		../configure \
+		$(TEMP_INSTALL_DIRS) \
+		--enable-static \
+		--enable-shared \
+		--disable-silent-rules \
+		--disable-dependency-tracking \
+		--enable-fast-install \
+		--disable-nls \
+		--with-gmp-prefix=$(TEMP_ROOTFS_PREFIX)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make install
+	$(making-end)
+
+temp_shared_cloog:
+	$(making-start)
+	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(CLOOG) $(DIR_WORKING)/$@
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		../configure \
+		$(TEMP_INSTALL_DIRS) \
+		--enable-static \
+		--enable-shared \
+		--disable-silent-rules \
+		--disable-dependency-tracking \
+		--enable-fast-install \
+		--disable-nls \
+		--with-isl-prefix=$(TEMP_ROOTFS_PREFIX) \
+		--with-gmp-prefix=$(TEMP_ROOTFS_PREFIX)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make install
 	$(making-end)

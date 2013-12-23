@@ -1,6 +1,7 @@
 define making-start
 	@date >> $@.making
 	@echo ">>> making $@"
+	@rm -rf $(DIR_WORKING)/$@
 endef
 
 define making-end
