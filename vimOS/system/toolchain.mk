@@ -242,7 +242,7 @@ gcc:
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	#@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$@/gcc/configure
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC="$(TEMP_ROOTFS_PREFIX)/bin/gcc --sysroot=$(TEMP_ROOTFS) -Wl,--sysroot=$(TEMP_ROOTFS)" \
+		CC="$(TEMP_ROOTFS_PREFIX)/bin/gcc -Wl,--sysroot=$(ROOTFS)" \
 		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
 		AR=$(ROOTFS_PREFIX)/bin/ar \
 		AS=$(ROOTFS_PREFIX)/bin/as \
@@ -305,6 +305,7 @@ temp_binutils_pass1:
 		../configure \
 		$(TEMP_INSTALL_DIRS) \
 		--target=$(CROSS_COMPILE_TARGET) \
+		--with-sysroot=$(TEMP_ROOTFS) \
 		--with-lib-path=$(TEMP_ROOTFS_PREFIX)/lib64 \
 		--disable-nls \
 		--disable-werror
@@ -313,7 +314,6 @@ temp_binutils_pass1:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
-		#--with-sysroot
 
 temp_gmp_pass1:
 	$(making-start)
@@ -432,6 +432,7 @@ temp_gcc_pass1:
 		../configure \
 		$(TEMP_INSTALL_DIRS) \
 		--target=$(CROSS_COMPILE_TARGET) \
+		--with-sysroot=$(TEMP_ROOTFS) \
 		--with-local-prefix=$(TEMP_ROOTFS_PREFIX) \
 		--with-gmp=$(TEMP_ROOTFS_PREFIX) \
 		--with-mpfr=$(TEMP_ROOTFS_PREFIX) \
@@ -460,7 +461,6 @@ temp_gcc_pass1:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
-		#--with-sysroot=$(TEMP_ROOTFS)
 
 temp_kernel_header:
 	$(making-start)
@@ -532,27 +532,7 @@ temp_binutils_pass2:
 	@mv -v $(DIR_WORKING)/$(BINUTILS) $(DIR_WORKING)/$@
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		../configure \
-		$(TEMP_INSTALL_DIRS) \
-		--host=$(CROSS_COMPILE_TARGET) \
-		--with-build-sysroot=$(TEMP_ROOTFS) \
-		--disable-nls
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		make install
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		make -C ld clean;
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		make -C ld LIB_PATH=$(TEMP_ROOTFS_PREFIX)/lib64; \
-		cp -v ld/ld-new $(TEMP_ROOTFS_PREFIX)/bin/ld
-	$(making-end)
-		#CC=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+		CC=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 		CXX=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
 		AR=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-ar \
 		AS=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-as \
@@ -563,7 +543,21 @@ temp_binutils_pass2:
 		OBJCOPY=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-objcopy \
 		OBJDUMP=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-objdump \
 		READELF=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-readelf \
-		#--with-sysroot
+		../configure \
+		$(TEMP_INSTALL_DIRS) \
+		--with-sysroot \
+		--with-build-sysroot=$(TEMP_ROOTFS) \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make install
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make -C ld clean;
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make -C ld LIB_PATH=$(TEMP_ROOTFS_PREFIX)/lib64; \
+		cp -v ld/ld-new $(TEMP_ROOTFS_PREFIX)/bin/ld
+	$(making-end)
 
 
 temp_gmp_pass2:
@@ -715,6 +709,7 @@ temp_gcc_pass2:
 		../configure \
 		$(TEMP_INSTALL_DIRS) \
 		--with-build-sysroot=$(TEMP_ROOTFS) \
+		--with-sysroot \
 		--with-gmp=$(TEMP_ROOTFS_PREFIX) \
 		--with-mpfr=$(TEMP_ROOTFS_PREFIX) \
 		--with-mpc=$(TEMP_ROOTFS_PREFIX) \
