@@ -54,7 +54,7 @@ $(BASH):
 	@tar zxf $(DIR_3RD_PARTY)/$(BASH).tar.gz -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
 		../configure \
 		$(INSTALL_DIRS) \
 		--enable-alias \
@@ -72,9 +72,11 @@ $(BASH):
 		--disable-nls \
 		--enable-select \
 		--disable-rpath \
-		--with-gnu-malloc \
-		&& make $(MAKE_FLAGS) \
-		&& make install
+		--with-gnu-malloc
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make install
 	$(making-end)
 
 $(COREUTIL):
@@ -82,14 +84,16 @@ $(COREUTIL):
 	@tar xJf $(DIR_3RD_PARTY)/$(COREUTIL).tar.xz -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
 		../configure \
 		$(INSTALL_DIRS) \
 		--enable-install-program=hostname \
-		--disable-nls \
-		&& make $(MAKE_FLAGS) \
-		&& make install
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make install
 	$(making-end)
+		#CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc
 
 clean:
 	make temp_toolchain_clean

@@ -7,24 +7,20 @@ CLOOG := cloog-0.18.0
 GCC := gcc-4.8.2
 GLIBC := glibc-2.18
 
-TOOLCHAIN := binutils gmp mpfr mpc isl cloog gcc
+TOOLCHAIN := binutils isl cloog gcc
 
 toolchain:
 	make binutils
 	make kernel_header
 	make glibc
-	make gmp mpfr mpc isl cloog
+	make isl cloog
 	make gcc
-	@cp -v $(ROOTFS_PREFIX)/lib64/libc.so.orig $(ROOTFS_PREFIX)/lib64/libc.so
-	@cp -v $(ROOTFS_PREFIX)/lib64/libpthread.so.orig $(ROOTFS_PREFIX)/lib64/libpthread.so
-	@cp -v $(ROOTFS_PREFIX)/lib64/libc.so.new $(ROOTFS_PREFIX)/lib64/libc.so
-	@cp -v $(ROOTFS_PREFIX)/lib64/libpthread.so.new $(ROOTFS_PREFIX)/lib64/libpthread.so
 
 toolchain_clean:
 	rm -f binutils
 	rm -f kernel_header
 	rm -f glibc
-	rm -f gmp mpfr mpc isl cloog gcc
+	rm -f isl cloog gcc
 
 binutils:
 	$(making-start)
@@ -34,13 +30,13 @@ binutils:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		../configure \
 		$(INSTALL_DIRS) \
+		--with-sysroot \
 		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
-		#--with-sysroot
 
 kernel_header:
 	$(making-start)
@@ -177,47 +173,61 @@ mpc:
 
 isl:
 	$(making-start)
-	@cp -v ${TEMP_ROOTFS_PREFIX}/lib64/libisl.a ${ROOTFS_PREFIX}/lib64/
-	@cp -v ${TEMP_ROOTFS_PREFIX}/lib64/libisl.la ${ROOTFS_PREFIX}/lib64/
-	$(making-end)
-
-isl2:
-	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(ISL) $(DIR_WORKING)/$@
+	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(GMP) $(DIR_WORKING)/$@/gmp
+	@cd $(DIR_WORKING)/$@/gmp; \
+		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
+		./configure \
+		$(INSTALL_DIRS) \
+		--disable-dependency-tracking \
+		--disable-shared \
+		--enable-static \
+		--enable-fast-install \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/gmp; \
+		make $(MAKE_FLAGS)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC="$(TEMP_ROOTFS_PREFIX)/bin/gcc --sysroot=$(TEMP_ROOTFS) -Wl,--sysroot=$(TEMP_ROOTFS)" \
-		CXX="$(TEMP_ROOTFS_PREFIX)/bin/g++ -Wl,--sysroot=$(ROOTFS)" \
+		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
 		../configure \
 		$(INSTALL_DIRS) \
+		--with-gmp=build \
+		--with-gmp-builddir=$(DIR_WORKING)/$@/gmp \
 		--enable-static \
 		--disable-shared \
 		--disable-silent-rules \
 		--disable-dependency-tracking \
 		--enable-fast-install \
-		--disable-nls \
-		--with-gmp-prefix=$(ROOTFS_PREFIX)
+		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		make
-		#make $(MAKE_FLAGS)
+		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
 
 cloog:
 	$(making-start)
-	@cp -v ${TEMP_ROOTFS_PREFIX}/lib64/libcloog-isl.a ${ROOTFS_PREFIX}/lib64/
-	@cp -v ${TEMP_ROOTFS_PREFIX}/lib64/libcloog-isl.la ${ROOTFS_PREFIX}/lib64/
-	$(making-end)
-
-cloog2:
-	$(making-start)
 	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(CLOOG) $(DIR_WORKING)/$@
+	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(GMP) $(DIR_WORKING)/$@/gmp
+	@cd $(DIR_WORKING)/$@/gmp; \
+		./configure \
+		$(INSTALL_DIRS) \
+		--disable-dependency-tracking \
+		--disable-shared \
+		--enable-static \
+		--enable-fast-install \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/gmp; \
+		make $(MAKE_FLAGS)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC="$(TEMP_ROOTFS_PREFIX)/bin/gcc --sysroot=$(ROOTFS) -Wl,--sysroot=$(ROOTFS)" \
+		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
 		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
 		../configure \
 		$(INSTALL_DIRS) \
@@ -226,9 +236,9 @@ cloog2:
 		--disable-silent-rules \
 		--disable-dependency-tracking \
 		--enable-fast-install \
-		--disable-nls \
-		--with-isl-prefix=$(ROOTFS_PREFIX) \
-		--with-gmp-prefix=$(ROOTFS_PREFIX)
+		--with-gmp=build \
+		--with-gmp-builddir=$(DIR_WORKING)/$@/gmp \
+		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
@@ -239,10 +249,16 @@ gcc:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(GCC) $(DIR_WORKING)/$@
+	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(GMP) $(DIR_WORKING)/$@/gmp
+	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(MPFR) $(DIR_WORKING)/$@/mpfr
+	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(MPC) $(DIR_WORKING)/$@/mpc
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	#@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$@/gcc/configure
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC="$(TEMP_ROOTFS_PREFIX)/bin/gcc -Wl,--sysroot=$(ROOTFS)" \
+		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
 		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
 		AR=$(ROOTFS_PREFIX)/bin/ar \
 		AS=$(ROOTFS_PREFIX)/bin/as \
@@ -256,10 +272,6 @@ gcc:
 		../configure \
 		$(INSTALL_DIRS) \
 		--with-build-sysroot=$(ROOTFS) \
-		--with-gmp=$(ROOTFS_PREFIX) \
-		--with-mpfr=$(ROOTFS_PREFIX) \
-		--with-mpc=$(ROOTFS_PREFIX) \
-		--with-isl=$(ROOTFS_PREFIX) \
 		--with-cloog=$(ROOTFS_PREFIX) \
 		--enable-shared \
 		--enable-threads=posix \
@@ -269,24 +281,28 @@ gcc:
 		--disable-multilib \
 		--disable-bootstrap \
 		--disable-install-libiberty
-	@cd $(DIR_WORKING)/$@/$@_build; \
+	-cd $(DIR_WORKING)/$@/$@_build; \
 		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		sed -i 's@RUN_GEN =@RUN_GEN = $(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64@' gcc/Makefile; \
+		sed -i 's@$$(GCC_FOR_TARGET) -dumpspecs > tmp-specs@$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 &@' gcc/Makefile; \
+		make
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
 	exit 1
+		#sed -i 's@GCC_FOR_TARGET =\(.*\)@GCC_FOR_TARGET = $(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 \1@' gcc/Makefile;
 		#--with-system-zlib
+		#--target=$(CROSS_COMPILE_TARGET)
+		#--with-local-prefix=$(ROOTFS_PREFIX)
+
+
 temp_toolchain:
 	make $(addsuffix _pass1, $(addprefix temp_, $(TOOLCHAIN)))
 	make temp_kernel_header
 	make temp_glibc
 	make temp_libstdc_plus_plus
 	make $(addsuffix _pass2, $(addprefix temp_, $(TOOLCHAIN)))
-	make temp_shared_gmp
-	#make temp_shared_mpfr
-	#make temp_shared_mpc
-	#make temp_shared_isl
-	#make temp_shared_cloog
 
 temp_toolchain_clean:
 	rm -f $(addsuffix _pass1, $(addprefix temp_, $(TOOLCHAIN)))
@@ -294,7 +310,6 @@ temp_toolchain_clean:
 	rm -f temp_glibc
 	rm -f temp_libstdc_plus_plus
 	rm -f $(addsuffix _pass2, $(addprefix temp_, $(TOOLCHAIN)))
-	rm -f temp_shared_gmp
 
 temp_binutils_pass1:
 	$(making-start)
@@ -315,83 +330,34 @@ temp_binutils_pass1:
 		make install
 	$(making-end)
 
-temp_gmp_pass1:
-	$(making-start)
-	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(GMP) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		../configure \
-		$(TEMP_INSTALL_DIRS) \
-		--enable-static \
-		--disable-shared \
-		--enable-fast-install \
-		--disable-nls
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make install
-	$(making-end)
-
-temp_mpfr_pass1:
-	$(making-start)
-	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(MPFR) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		../configure \
-		$(TEMP_INSTALL_DIRS) \
-		--enable-static \
-		--disable-shared \
-		--disable-dependency-tracking \
-		--enable-fast-install \
-		--disable-nls \
-		--with-gmp-include=$(TEMP_ROOTFS_PREFIX)/include \
-		--with-gmp-lib=$(TEMP_ROOTFS_PREFIX)/lib64
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make install
-	$(making-end)
-
-temp_mpc_pass1:
-	$(making-start)
-	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(MPC) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		../configure \
-		$(TEMP_INSTALL_DIRS) \
-		--enable-static \
-		--disable-shared \
-		--disable-dependency-tracking \
-		--enable-fast-install \
-		--disable-nls \
-		--with-gmp-include=$(TEMP_ROOTFS_PREFIX)/include \
-		--with-gmp-lib=$(TEMP_ROOTFS_PREFIX)/lib64 \
-		--with-mpfr-include=$(TEMP_ROOTFS_PREFIX)/include \
-		--with-mpfr-lib=$(TEMP_ROOTFS_PREFIX)/lib64
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make install
-	$(making-end)
-
 temp_isl_pass1:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(ISL) $(DIR_WORKING)/$@
+	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(GMP) $(DIR_WORKING)/$@/gmp
+	@cd $(DIR_WORKING)/$@/gmp; \
+		./configure \
+		$(TEMP_INSTALL_DIRS) \
+		--disable-dependency-tracking \
+		--disable-shared \
+		--enable-static \
+		--enable-fast-install \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/gmp; \
+		make $(MAKE_FLAGS)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		../configure \
 		$(TEMP_INSTALL_DIRS) \
+		--with-gmp=build \
+		--with-gmp-builddir=$(DIR_WORKING)/$@/gmp \
 		--enable-static \
 		--disable-shared \
 		--disable-silent-rules \
 		--disable-dependency-tracking \
 		--enable-fast-install \
-		--disable-nls \
-		--with-gmp-prefix=$(TEMP_ROOTFS_PREFIX)
+		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
@@ -402,6 +368,18 @@ temp_cloog_pass1:
 	$(making-start)
 	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(CLOOG) $(DIR_WORKING)/$@
+	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(GMP) $(DIR_WORKING)/$@/gmp
+	@cd $(DIR_WORKING)/$@/gmp; \
+		./configure \
+		$(TEMP_INSTALL_DIRS) \
+		--disable-dependency-tracking \
+		--disable-shared \
+		--enable-static \
+		--enable-fast-install \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/gmp; \
+		make $(MAKE_FLAGS)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		../configure \
@@ -411,9 +389,9 @@ temp_cloog_pass1:
 		--disable-silent-rules \
 		--disable-dependency-tracking \
 		--enable-fast-install \
-		--disable-nls \
-		--with-isl-prefix=$(TEMP_ROOTFS_PREFIX) \
-		--with-gmp-prefix=$(TEMP_ROOTFS_PREFIX)
+		--with-gmp=build \
+		--with-gmp-builddir=$(DIR_WORKING)/$@/gmp \
+		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
@@ -425,6 +403,12 @@ temp_gcc_pass1:
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(GCC) $(DIR_WORKING)/$@
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(GMP) $(DIR_WORKING)/$@/gmp
+	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(MPFR) $(DIR_WORKING)/$@/mpfr
+	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(MPC) $(DIR_WORKING)/$@/mpc
 	@cp -v replace_ld.sh $(DIR_WORKING)/$@/
 	@cd $(DIR_WORKING)/$@; sh replace_ld.sh $(TEMP_ROOTFS)
 	@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$@/gcc/configure
@@ -434,10 +418,6 @@ temp_gcc_pass1:
 		--target=$(CROSS_COMPILE_TARGET) \
 		--with-sysroot=$(TEMP_ROOTFS) \
 		--with-local-prefix=$(TEMP_ROOTFS_PREFIX) \
-		--with-gmp=$(TEMP_ROOTFS_PREFIX) \
-		--with-mpfr=$(TEMP_ROOTFS_PREFIX) \
-		--with-mpc=$(TEMP_ROOTFS_PREFIX) \
-		--with-isl=$(TEMP_ROOTFS_PREFIX) \
 		--with-cloog=$(TEMP_ROOTFS_PREFIX) \
 		--with-newlib \
 		--disable-libstdc++-v3 \
@@ -559,17 +539,35 @@ temp_binutils_pass2:
 		cp -v ld/ld-new $(TEMP_ROOTFS_PREFIX)/bin/ld
 	$(making-end)
 
-
-temp_gmp_pass2:
+temp_isl_pass2:
 	$(making-start)
-	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(GMP) $(DIR_WORKING)/$@
+	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
+	@mv -v $(DIR_WORKING)/$(ISL) $(DIR_WORKING)/$@
+	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(GMP) $(DIR_WORKING)/$@/gmp
+	@cd $(DIR_WORKING)/$@/gmp; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
+		./configure \
+		$(TEMP_INSTALL_DIRS) \
+		--host=$(CROSS_COMPILE_TARGET) \
+		--disable-dependency-tracking \
+		--disable-shared \
+		--enable-static \
+		--enable-fast-install \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/gmp; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
+		make $(MAKE_FLAGS)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
 		$(TEMP_INSTALL_DIRS) \
 		--host=$(CROSS_COMPILE_TARGET) \
+		--with-gmp=build \
+		--with-gmp-builddir=$(DIR_WORKING)/$@/gmp \
+		--disable-silent-rules \
+		--disable-dependency-tracking \
 		--disable-shared \
 		--enable-static \
 		--enable-fast-install \
@@ -582,87 +580,25 @@ temp_gmp_pass2:
 		make install
 	$(making-end)
 
-temp_mpfr_pass2:
-	$(making-start)
-	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(MPFR) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		../configure \
-		$(TEMP_INSTALL_DIRS) \
-		--host=$(CROSS_COMPILE_TARGET) \
-		--disable-dependency-tracking \
-		--disable-shared \
-		--enable-static \
-		--enable-fast-install \
-		--disable-nls \
-		--with-gmp-include=$(TEMP_ROOTFS_PREFIX)/include \
-		--with-gmp-lib=$(TEMP_ROOTFS_PREFIX)/lib64
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		make install
-	$(making-end)
-
-temp_mpc_pass2:
-	$(making-start)
-	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(MPC) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		../configure \
-		$(TEMP_INSTALL_DIRS) \
-		--host=$(CROSS_COMPILE_TARGET) \
-		--disable-dependency-tracking \
-		--disable-shared \
-		--enable-static \
-		--enable-fast-install \
-		--disable-nls \
-		--with-gmp-include=$(TEMP_ROOTFS_PREFIX)/include \
-		--with-gmp-lib=$(TEMP_ROOTFS_PREFIX)/lib64 \
-		--with-mpfr-include=$(TEMP_ROOTFS_PREFIX)/include \
-		--with-mpfr-lib=$(TEMP_ROOTFS_PREFIX)/lib64
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		make install
-	$(making-end)
-
-temp_isl_pass2:
-	$(making-start)
-	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(ISL) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		../configure \
-		$(TEMP_INSTALL_DIRS) \
-		--host=$(CROSS_COMPILE_TARGET) \
-		--disable-silent-rules \
-		--disable-dependency-tracking \
-		--disable-shared \
-		--enable-static \
-		--enable-fast-install \
-		--disable-nls \
-		--with-gmp-prefix=$(TEMP_ROOTFS_PREFIX)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
-		make install
-	$(making-end)
-
 temp_cloog_pass2:
 	$(making-start)
 	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(CLOOG) $(DIR_WORKING)/$@
+	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(GMP) $(DIR_WORKING)/$@/gmp
+	@cd $(DIR_WORKING)/$@/gmp; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
+		./configure \
+		$(TEMP_INSTALL_DIRS) \
+		--host=$(CROSS_COMPILE_TARGET) \
+		--disable-dependency-tracking \
+		--disable-shared \
+		--enable-static \
+		--enable-fast-install \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/gmp; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
+		make $(MAKE_FLAGS)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
@@ -674,9 +610,9 @@ temp_cloog_pass2:
 		--disable-shared \
 		--enable-static \
 		--enable-fast-install \
-		--disable-nls \
-		--with-isl-prefix=$(TEMP_ROOTFS_PREFIX) \
-		--with-gmp-prefix=$(TEMP_ROOTFS_PREFIX)
+		--with-gmp=build \
+		--with-gmp-builddir=$(DIR_WORKING)/$@/gmp \
+		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
@@ -684,13 +620,20 @@ temp_cloog_pass2:
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	$(making-end)
+		#--with-isl-prefix=$(TEMP_ROOTFS_PREFIX) \
 
 temp_gcc_pass2:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(GCC) $(DIR_WORKING)/$@
+	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(GMP) $(DIR_WORKING)/$@/gmp
+	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(MPFR) $(DIR_WORKING)/$@/mpfr
+	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$@
+	@mv -v $(DIR_WORKING)/$@/$(MPC) $(DIR_WORKING)/$@/mpc
 	@cp -v replace_ld.sh $(DIR_WORKING)/$@/
-	@cd $(DIR_WORKING)/$@; sh replace_ld.sh $(TEMP_ROOTFS)
+	#@cd $(DIR_WORKING)/$@; sh replace_ld.sh $(TEMP_ROOTFS)
 	@cd $(DIR_WORKING)/$@; \
 		cat gcc/limitx.h gcc/glimits.h gcc/limity.h > $(shell dirname $(shell $(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc -print-libgcc-file-name))/include-fixed/limits.h
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
@@ -709,11 +652,7 @@ temp_gcc_pass2:
 		../configure \
 		$(TEMP_INSTALL_DIRS) \
 		--with-build-sysroot=$(TEMP_ROOTFS) \
-		--with-sysroot \
-		--with-gmp=$(TEMP_ROOTFS_PREFIX) \
-		--with-mpfr=$(TEMP_ROOTFS_PREFIX) \
-		--with-mpc=$(TEMP_ROOTFS_PREFIX) \
-		--with-isl=$(TEMP_ROOTFS_PREFIX) \
+		--with-sysroot=$(TEMP_ROOTFS) \
 		--with-cloog=$(TEMP_ROOTFS_PREFIX) \
 		--enable-clocale=gnu \
 		--enable-shared \
@@ -725,115 +664,9 @@ temp_gcc_pass2:
 		--disable-bootstrap \
 		--disable-libgomp
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	@test -e $(TEMP_ROOTFS_PREFIX)/bin/cc || ln -sv ./gcc $(TEMP_ROOTFS_PREFIX)/bin/cc
 	$(making-end)
-
-temp_shared_gmp:
-	$(making-start)
-	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(GMP) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		../configure \
-		$(TEMP_INSTALL_DIRS) \
-		--enable-static \
-		--enable-shared \
-		--enable-fast-install \
-		--disable-nls
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make install
-	$(making-end)
-
-temp_shared_mpfr:
-	$(making-start)
-	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(MPFR) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		../configure \
-		$(TEMP_INSTALL_DIRS) \
-		--enable-static \
-		--enable-shared \
-		--disable-dependency-tracking \
-		--enable-fast-install \
-		--disable-nls \
-		--with-gmp-include=$(TEMP_ROOTFS_PREFIX)/include \
-		--with-gmp-lib=$(TEMP_ROOTFS_PREFIX)/lib64
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make install
-	$(making-end)
-
-temp_shared_mpc:
-	$(making-start)
-	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(MPC) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		../configure \
-		$(TEMP_INSTALL_DIRS) \
-		--enable-static \
-		--enable-shared \
-		--disable-dependency-tracking \
-		--enable-fast-install \
-		--disable-nls \
-		--with-gmp-include=$(TEMP_ROOTFS_PREFIX)/include \
-		--with-gmp-lib=$(TEMP_ROOTFS_PREFIX)/lib64 \
-		--with-mpfr-include=$(TEMP_ROOTFS_PREFIX)/include \
-		--with-mpfr-lib=$(TEMP_ROOTFS_PREFIX)/lib64
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make install
-	$(making-end)
-
-temp_shared_isl:
-	$(making-start)
-	@tar jxf $(DIR_3RD_PARTY)/$(ISL).tar.bz2 -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(ISL) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		../configure \
-		$(TEMP_INSTALL_DIRS) \
-		--enable-static \
-		--enable-shared \
-		--disable-silent-rules \
-		--disable-dependency-tracking \
-		--enable-fast-install \
-		--disable-nls \
-		--with-gmp-prefix=$(TEMP_ROOTFS_PREFIX)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make install
-	$(making-end)
-
-temp_shared_cloog:
-	$(making-start)
-	@tar zxf $(DIR_3RD_PARTY)/$(CLOOG).tar.gz -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(CLOOG) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		../configure \
-		$(TEMP_INSTALL_DIRS) \
-		--enable-static \
-		--enable-shared \
-		--disable-silent-rules \
-		--disable-dependency-tracking \
-		--enable-fast-install \
-		--disable-nls \
-		--with-isl-prefix=$(TEMP_ROOTFS_PREFIX) \
-		--with-gmp-prefix=$(TEMP_ROOTFS_PREFIX)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make install
-	$(making-end)
+		#--with-isl=$(TEMP_ROOTFS_PREFIX) \
