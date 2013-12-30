@@ -269,6 +269,7 @@ gcc2:
 		OBJCOPY=$(ROOTFS_PREFIX)/bin/objcopy \
 		OBJDUMP=$(ROOTFS_PREFIX)/bin/objdump \
 		READELF=$(ROOTFS_PREFIX)/bin/readelf \
+		CC_FOR_TARGET="$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 $(TEMP_ROOTFS_PREFIX)/bin/gcc" \
 		../configure \
 		$(INSTALL_DIRS) \
 		--with-build-sysroot=$(ROOTFS) \
@@ -295,12 +296,12 @@ gcc2:
 		sed -i "s@ac_link='\(.*\)@ac_link=\'$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 \1@" ../libgcc/configure; \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		sed -i 's@gcc_compile = \$$(gcc_compile_bare)\(.*\)@gcc_compile = $(TEMP_ROOTFS_PREFIX)/bin/gcc $(INTERNAL_CFLAGS) \1@' x86_64-unknown-linux-gnu/libgcc/Makefile; \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
 	exit 1
+		#sed -i 's@^CC_FOR_TARGET=\(.*\)@CC_FOR_TARGET=$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 \1@' Makefile; \
 		#--with-system-zlib
 		#sed -i 's@CC=\$$(CC)@CC=$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 \$$(CC)@' x86_64-unknown-linux-gnu/libgcc/Makefile; \
 		#sed -i "s@ac_compile='\(.*\)@ac_compile=\'$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 \1@" ../libgcc/configure; \
@@ -309,8 +310,8 @@ gcc2:
 
 gcc:
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		sed -i 's@gcc_compile = \$$(gcc_compile_bare)\(.*\)@gcc_compile = $(TEMP_ROOTFS_PREFIX)/bin/gcc -I$(DIR_WORKING)/$@/$@_build/gcc -I$(DIR_WORKING)/$@/gcc -I$(DIR_WORKING)/$@/include -I$(DIR_WORKING)/$@/x86_64-unknown-linux-gnu/libgcc \1@' x86_64-unknown-linux-gnu/libgcc/Makefile; \
-		make $(MAKE_FLAGS)
+		sed -i 's@gcc_compile = \$$(gcc_compile_bare)\(.*\)@gcc_compile = $(TEMP_ROOTFS_PREFIX)/bin/gcc -I$(DIR_WORKING)/$@/$@_build/gcc -I$(DIR_WORKING)/$@/gcc -I$(DIR_WORKING)/$@/include -I$(DIR_WORKING)/$@/$@_build/x86_64-unknown-linux-gnu/libgcc \1@' x86_64-unknown-linux-gnu/libgcc/Makefile; \
+		make
 	exit 1
 
 temp_toolchain:
