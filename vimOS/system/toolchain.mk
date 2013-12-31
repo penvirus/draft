@@ -245,7 +245,7 @@ cloog:
 		make install
 	$(making-end)
 
-gcc2:
+gcc:
 	$(making-start)
 	@tar jxf $(DIR_3RD_PARTY)/$(GCC).tar.bz2 -C $(DIR_WORKING)
 	@mv -v $(DIR_WORKING)/$(GCC) $(DIR_WORKING)/$@
@@ -258,18 +258,6 @@ gcc2:
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	#@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$@/gcc/configure
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
-		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
-		AR=$(ROOTFS_PREFIX)/bin/ar \
-		AS=$(ROOTFS_PREFIX)/bin/as \
-		LD=$(ROOTFS_PREFIX)/bin/ld \
-		NM=$(ROOTFS_PREFIX)/bin/nm \
-		RANLIB=$(ROOTFS_PREFIX)/bin/ranlib \
-		STRIP=$(ROOTFS_PREFIX)/bin/strip \
-		OBJCOPY=$(ROOTFS_PREFIX)/bin/objcopy \
-		OBJDUMP=$(ROOTFS_PREFIX)/bin/objdump \
-		READELF=$(ROOTFS_PREFIX)/bin/readelf \
-		CC_FOR_TARGET="$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 $(TEMP_ROOTFS_PREFIX)/bin/gcc" \
 		../configure \
 		$(INSTALL_DIRS) \
 		--with-build-sysroot=$(ROOTFS) \
@@ -284,6 +272,18 @@ gcc2:
 		--disable-install-libiberty
 	-cd $(DIR_WORKING)/$@/$@_build; \
 		make $(MAKE_FLAGS)
+		#CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		#CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
+		#AR=$(ROOTFS_PREFIX)/bin/ar \
+		#AS=$(ROOTFS_PREFIX)/bin/as \
+		#LD=$(ROOTFS_PREFIX)/bin/ld \
+		#NM=$(ROOTFS_PREFIX)/bin/nm \
+		#RANLIB=$(ROOTFS_PREFIX)/bin/ranlib \
+		#STRIP=$(ROOTFS_PREFIX)/bin/strip \
+		#OBJCOPY=$(ROOTFS_PREFIX)/bin/objcopy \
+		#OBJDUMP=$(ROOTFS_PREFIX)/bin/objdump \
+		#READELF=$(ROOTFS_PREFIX)/bin/readelf
+	exit 1
 	-cd $(DIR_WORKING)/$@/$@_build; \
 		sed -i 's@RUN_GEN =@RUN_GEN = $(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64@' gcc/Makefile; \
 		sed -i 's@RUN_GEN =\(.*\)@RUN_GEN = $(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 \1@' ../gcc/Makefile.in; \
@@ -308,11 +308,11 @@ gcc2:
 		#--target=$(CROSS_COMPILE_TARGET)
 		#--with-local-prefix=$(ROOTFS_PREFIX)
 
-gcc:
+gcc2:
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		sed -i 's@gcc_compile = \$$(gcc_compile_bare)\(.*\)@gcc_compile = $(TEMP_ROOTFS_PREFIX)/bin/gcc -I$(DIR_WORKING)/$@/$@_build/gcc -I$(DIR_WORKING)/$@/gcc -I$(DIR_WORKING)/$@/include -I$(DIR_WORKING)/$@/$@_build/x86_64-unknown-linux-gnu/libgcc \1@' x86_64-unknown-linux-gnu/libgcc/Makefile; \
 		make
 	exit 1
+		#sed -i 's@gcc_compile = \$$(gcc_compile_bare)\(.*\)@gcc_compile = $(TEMP_ROOTFS_PREFIX)/bin/gcc -I$(DIR_WORKING)/$@/$@_build/gcc -I$(DIR_WORKING)/$@/gcc -I$(DIR_WORKING)/$@/include -I$(DIR_WORKING)/$@/$@_build/x86_64-unknown-linux-gnu/libgcc \1@' x86_64-unknown-linux-gnu/libgcc/Makefile;
 
 temp_toolchain:
 	make $(addsuffix _pass1, $(addprefix temp_, $(TOOLCHAIN)))
