@@ -93,23 +93,24 @@ isl:
 	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$@
 	@mv -v $(DIR_WORKING)/$@/$(GMP) $(DIR_WORKING)/$@/gmp
 	@cd $(DIR_WORKING)/$@/gmp; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
-		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		./configure \
 		$(INSTALL_DIRS) \
+		--host=$(CROSS_COMPILE_TARGET) \
 		--disable-dependency-tracking \
 		--disable-shared \
 		--enable-static \
 		--enable-fast-install \
 		--disable-nls
 	@cd $(DIR_WORKING)/$@/gmp; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
-		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
 		$(INSTALL_DIRS) \
+		--host=$(CROSS_COMPILE_TARGET) \
 		--with-gmp=build \
 		--with-gmp-builddir=$(DIR_WORKING)/$@/gmp \
 		--enable-static \
@@ -119,8 +120,10 @@ isl:
 		--enable-fast-install \
 		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	$(making-end)
 
@@ -131,21 +134,24 @@ cloog:
 	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)/$@
 	@mv -v $(DIR_WORKING)/$@/$(GMP) $(DIR_WORKING)/$@/gmp
 	@cd $(DIR_WORKING)/$@/gmp; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		./configure \
 		$(INSTALL_DIRS) \
+		--host=$(CROSS_COMPILE_TARGET) \
 		--disable-dependency-tracking \
 		--disable-shared \
 		--enable-static \
 		--enable-fast-install \
 		--disable-nls
 	@cd $(DIR_WORKING)/$@/gmp; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
-		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
 		$(INSTALL_DIRS) \
+		--host=$(CROSS_COMPILE_TARGET) \
 		--enable-static \
 		--disable-shared \
 		--disable-silent-rules \
@@ -155,8 +161,10 @@ cloog:
 		--with-gmp-builddir=$(DIR_WORKING)/$@/gmp \
 		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	$(making-end)
 
