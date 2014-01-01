@@ -96,7 +96,7 @@ glibc:
 		touch -d "$$fake_mtime" config.make; \
 		fake_mtime=`stat config.status | grep 'Modify:' | cut -d' ' -f2-`; \
 		mv -v config.status.fake config.status; \
-		touch -d "$$fake_mtime" config.make;
+		touch -d "$$fake_mtime" config.status;
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	@cp -v $(ROOTFS_PREFIX)/lib64/libc.so{,.orig}
@@ -256,8 +256,20 @@ gcc:
 	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)/$@
 	@mv -v $(DIR_WORKING)/$@/$(MPC) $(DIR_WORKING)/$@/mpc
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	#@sed -i '/k prot/agcc_cv_libc_provides_ssp=yes' $(DIR_WORKING)/$@/gcc/configure
+	@cd $(DIR_WORKING)/$@; \
+		cat gcc/limitx.h gcc/glimits.h gcc/limity.h > $(shell dirname $(shell $(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc -print-libgcc-file-name))/include-fixed/limits.h
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		CC_FOR_TARGET=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
+		CXX_FOR_TARGET=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
+		AR_FOR_TARGET=$(ROOTFS_PREFIX)/bin/ar \
+		AS_FOR_TARGET=$(ROOTFS_PREFIX)/bin/as \
+		LD_FOR_TARGET=$(ROOTFS_PREFIX)/bin/ld \
+		NM_FOR_TARGET=$(ROOTFS_PREFIX)/bin/nm \
+		RANLIB_FOR_TARGET=$(ROOTFS_PREFIX)/bin/ranlib \
+		STRIP_FOR_TARGET=$(ROOTFS_PREFIX)/bin/strip \
+		OBJCOPY_FOR_TARGET=$(ROOTFS_PREFIX)/bin/objcopy \
+		OBJDUMP_FOR_TARGET=$(ROOTFS_PREFIX)/bin/objdump \
+		READELF_FOR_TARGET=$(ROOTFS_PREFIX)/bin/readelf \
 		../configure \
 		$(INSTALL_DIRS) \
 		--with-build-sysroot=$(ROOTFS) \
@@ -269,21 +281,18 @@ gcc:
 		--enable-languages=c,c++ \
 		--disable-multilib \
 		--disable-bootstrap \
+		--disable-lto \
 		--disable-install-libiberty
-	-cd $(DIR_WORKING)/$@/$@_build; \
+	@cd $(DIR_WORKING)/$@/$@_build; \
 		make $(MAKE_FLAGS)
-		#CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
-		#CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
-		#AR=$(ROOTFS_PREFIX)/bin/ar \
-		#AS=$(ROOTFS_PREFIX)/bin/as \
-		#LD=$(ROOTFS_PREFIX)/bin/ld \
-		#NM=$(ROOTFS_PREFIX)/bin/nm \
-		#RANLIB=$(ROOTFS_PREFIX)/bin/ranlib \
-		#STRIP=$(ROOTFS_PREFIX)/bin/strip \
-		#OBJCOPY=$(ROOTFS_PREFIX)/bin/objcopy \
-		#OBJDUMP=$(ROOTFS_PREFIX)/bin/objdump \
-		#READELF=$(ROOTFS_PREFIX)/bin/readelf
-	exit 1
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make install
+	$(making-end)
+		#PATH=/home/tbshr/draft/vimOS/dist/rootfs/usr/bin/only:$${PATH} \
+		#CC_FOR_TARGET="gcc -nostdinc -I$(ROOTFS_PREFIX)/include -I$(ROOTFS_PREFIX)/lib64/gcc/x86_64-unknown-linux-gnu/4.8.2/include -I$(ROOTFS_PREFIX)/lib64/gcc/x86_64-unknown-linux-gnu/4.8.2/include-fixed -nodefaultlibs -L$(ROOTFS_PREFIX)/lib64 --sysroot=$(ROOTFS) -lc" \
+		#CXX_FOR_TARGET="g++ -nostdinc -I$(ROOTFS_PREFIX)/include -I$(ROOTFS_PREFIX)/lib64/gcc/x86_64-unknown-linux-gnu/4.8.2/include -I$(ROOTFS_PREFIX)/lib64/gcc/x86_64-unknown-linux-gnu/4.8.2/include-fixed -nodefaultlibs -L$(ROOTFS_PREFIX)/lib64 --sysroot=$(ROOTFS) -lc"
+
+ggg:
 	-cd $(DIR_WORKING)/$@/$@_build; \
 		sed -i 's@RUN_GEN =@RUN_GEN = $(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64@' gcc/Makefile; \
 		sed -i 's@RUN_GEN =\(.*\)@RUN_GEN = $(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 \1@' ../gcc/Makefile.in; \
