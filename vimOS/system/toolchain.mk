@@ -32,7 +32,6 @@ binutils:
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	$(making-end)
-	exit 1
 
 kernel_header:
 	$(making-start)
@@ -48,19 +47,10 @@ glibc:
 	@mv -v $(DIR_WORKING)/$(GLIBC) $(DIR_WORKING)/$@
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
-		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
-		AR=$(TEMP_ROOTFS_PREFIX)/bin/ar \
-		AS=$(TEMP_ROOTFS_PREFIX)/bin/as \
-		LD=$(TEMP_ROOTFS_PREFIX)/bin/ld \
-		NM=$(TEMP_ROOTFS_PREFIX)/bin/nm \
-		RANLIB=$(TEMP_ROOTFS_PREFIX)/bin/ranlib \
-		STRIP=$(TEMP_ROOTFS_PREFIX)/bin/strip \
-		OBJCOPY=$(TEMP_ROOTFS_PREFIX)/bin/objcopy \
-		OBJDUMP=$(TEMP_ROOTFS_PREFIX)/bin/objdump \
-		READELF=$(TEMP_ROOTFS_PREFIX)/bin/readelf \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
 		$(INSTALL_DIRS) \
+		--host=$(CROSS_COMPILE_TARGET) \
 		--with-headers=$(ROOTFS_PREFIX)/include \
 		--disable-profile \
 		--enable-kernel=2.6.32
@@ -68,23 +58,15 @@ glibc:
 		cp -v config.make{,.fake}; \
 		cp -v config.status{,.fake};
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
-		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
-		AR=$(TEMP_ROOTFS_PREFIX)/bin/ar \
-		AS=$(TEMP_ROOTFS_PREFIX)/bin/as \
-		LD=$(TEMP_ROOTFS_PREFIX)/bin/ld \
-		NM=$(TEMP_ROOTFS_PREFIX)/bin/nm \
-		RANLIB=$(TEMP_ROOTFS_PREFIX)/bin/ranlib \
-		STRIP=$(TEMP_ROOTFS_PREFIX)/bin/strip \
-		OBJCOPY=$(TEMP_ROOTFS_PREFIX)/bin/objcopy \
-		OBJDUMP=$(TEMP_ROOTFS_PREFIX)/bin/objdump \
-		READELF=$(TEMP_ROOTFS_PREFIX)/bin/readelf \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
 		$(FAKE_INSTALL_DIRS) \
+		--host=$(CROSS_COMPILE_TARGET) \
 		--with-headers=$(ROOTFS_PREFIX)/include \
 		--disable-profile \
 		--enable-kernel=2.6.32
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		fake_mtime=`stat config.make | grep 'Modify:' | cut -d' ' -f2-`; \
@@ -94,6 +76,7 @@ glibc:
 		mv -v config.status.fake config.status; \
 		touch -d "$$fake_mtime" config.status;
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	@cp -v $(ROOTFS_PREFIX)/lib64/libc.so{,.orig}
 	@cp -v $(ROOTFS_PREFIX)/lib64/libpthread.so{,.orig}
@@ -101,70 +84,6 @@ glibc:
 	@sed -i 's@$(ROOTFS)@@g' $(ROOTFS_PREFIX)/lib64/libpthread.so
 	@cp -v $(ROOTFS_PREFIX)/lib64/libc.so{,.new}
 	@cp -v $(ROOTFS_PREFIX)/lib64/libpthread.so{,.new}
-	$(making-end)
-
-gmp:
-	$(making-start)
-	@tar Jxf $(DIR_3RD_PARTY)/$(GMP).tar.xz -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(GMP) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
-		CXX=$(TEMP_ROOTFS_PREFIX)/bin/g++ \
-		../configure \
-		$(INSTALL_DIRS) \
-		--enable-fast-install \
-		--disable-nls
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make install
-	$(making-end)
-
-mpfr:
-	$(making-start)
-	@tar Jxf $(DIR_3RD_PARTY)/$(MPFR).tar.xz -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(MPFR) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC="$(TEMP_ROOTFS_PREFIX)/bin/gcc --sysroot=$(ROOTFS)" \
-		../configure \
-		$(INSTALL_DIRS) \
-		--enable-static \
-		--disable-shared \
-		--disable-dependency-tracking \
-		--enable-fast-install \
-		--disable-nls \
-		--with-gmp-include=$(ROOTFS_PREFIX)/include \
-		--with-gmp-lib=$(ROOTFS_PREFIX)/lib64
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make install
-	$(making-end)
-
-mpc:
-	$(making-start)
-	@tar zxf $(DIR_3RD_PARTY)/$(MPC).tar.gz -C $(DIR_WORKING)
-	@mv -v $(DIR_WORKING)/$(MPC) $(DIR_WORKING)/$@
-	@mkdir -pv $(DIR_WORKING)/$@/$@_build
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC="$(TEMP_ROOTFS_PREFIX)/bin/gcc --sysroot=$(ROOTFS)" \
-		../configure \
-		$(INSTALL_DIRS) \
-		--enable-static \
-		--disable-shared \
-		--disable-dependency-tracking \
-		--enable-fast-install \
-		--disable-nls \
-		--with-gmp-include=$(ROOTFS_PREFIX)/include \
-		--with-gmp-lib=$(ROOTFS_PREFIX)/lib64 \
-		--with-mpfr-include=$(ROOTFS_PREFIX)/include \
-		--with-mpfr-lib=$(ROOTFS_PREFIX)/lib64
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make install
 	$(making-end)
 
 isl:
