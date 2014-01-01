@@ -182,19 +182,10 @@ gcc:
 	@cd $(DIR_WORKING)/$@; \
 		cat gcc/limitx.h gcc/glimits.h gcc/limity.h > $(shell dirname $(shell $(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc -print-libgcc-file-name))/include-fixed/limits.h
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC_FOR_TARGET=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc \
-		CXX_FOR_TARGET=$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-g++ \
-		AR_FOR_TARGET=$(ROOTFS_PREFIX)/bin/ar \
-		AS_FOR_TARGET=$(ROOTFS_PREFIX)/bin/as \
-		LD_FOR_TARGET=$(ROOTFS_PREFIX)/bin/ld \
-		NM_FOR_TARGET=$(ROOTFS_PREFIX)/bin/nm \
-		RANLIB_FOR_TARGET=$(ROOTFS_PREFIX)/bin/ranlib \
-		STRIP_FOR_TARGET=$(ROOTFS_PREFIX)/bin/strip \
-		OBJCOPY_FOR_TARGET=$(ROOTFS_PREFIX)/bin/objcopy \
-		OBJDUMP_FOR_TARGET=$(ROOTFS_PREFIX)/bin/objdump \
-		READELF_FOR_TARGET=$(ROOTFS_PREFIX)/bin/readelf \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
 		$(INSTALL_DIRS) \
+		--host=$(CROSS_COMPILE_TARGET) \
 		--with-build-sysroot=$(ROOTFS) \
 		--with-cloog=$(ROOTFS_PREFIX) \
 		--enable-shared \
@@ -207,7 +198,11 @@ gcc:
 		--disable-lto \
 		--disable-install-libiberty
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	$(making-end)
+	exit 1
+
