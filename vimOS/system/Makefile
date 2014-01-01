@@ -59,12 +59,13 @@ all_packages:
 
 $(BASH):
 	$(making-start)
-	@tar zxf $(DIR_3RD_PARTY)/$(BASH).tar.gz -C $(DIR_WORKING)
+	@tar zxf $(DIR_3RD_PARTY)/$@.tar.gz -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
 		$(INSTALL_DIRS) \
+		--host=x86_64-unknown-linux-gnu \
 		--enable-alias \
 		--enable-arith-for-command \
 		--enable-array-variables \
@@ -82,25 +83,35 @@ $(BASH):
 		--disable-rpath \
 		--with-gnu-malloc
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	$(making-end)
 
 $(COREUTIL):
 	$(making-start)
-	@tar xJf $(DIR_3RD_PARTY)/$(COREUTIL).tar.xz -C $(DIR_WORKING)
+	@tar xJf $(DIR_3RD_PARTY)/$@.tar.xz -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
 		$(INSTALL_DIRS) \
+		--host=x86_64-unknown-linux-gnu \
+		--disable-silent-rules \
+		--disable-dependency-tracking \
 		--enable-install-program=hostname \
 		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	$(making-end)
+	exit 1
+		#--enable-threads=posix
 
 $(STRACE):
 	$(making-start)
