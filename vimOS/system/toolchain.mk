@@ -288,40 +288,6 @@ gcc:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
-		#PATH=/home/tbshr/draft/vimOS/dist/rootfs/usr/bin/only:$${PATH} \
-		#CC_FOR_TARGET="gcc -nostdinc -I$(ROOTFS_PREFIX)/include -I$(ROOTFS_PREFIX)/lib64/gcc/x86_64-unknown-linux-gnu/4.8.2/include -I$(ROOTFS_PREFIX)/lib64/gcc/x86_64-unknown-linux-gnu/4.8.2/include-fixed -nodefaultlibs -L$(ROOTFS_PREFIX)/lib64 --sysroot=$(ROOTFS) -lc" \
-		#CXX_FOR_TARGET="g++ -nostdinc -I$(ROOTFS_PREFIX)/include -I$(ROOTFS_PREFIX)/lib64/gcc/x86_64-unknown-linux-gnu/4.8.2/include -I$(ROOTFS_PREFIX)/lib64/gcc/x86_64-unknown-linux-gnu/4.8.2/include-fixed -nodefaultlibs -L$(ROOTFS_PREFIX)/lib64 --sysroot=$(ROOTFS) -lc"
-
-ggg:
-	-cd $(DIR_WORKING)/$@/$@_build; \
-		sed -i 's@RUN_GEN =@RUN_GEN = $(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64@' gcc/Makefile; \
-		sed -i 's@RUN_GEN =\(.*\)@RUN_GEN = $(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 \1@' ../gcc/Makefile.in; \
-		sed -i 's@$$(GCC_FOR_TARGET) -dumpspecs > tmp-specs@$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 &@' gcc/Makefile; \
-		sed -i 's@$$(GCC_FOR_TARGET) -dumpspecs > tmp-specs@$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 &@' ../gcc/Makefile.in; \
-		sed -i 's@build/genchecksum$$(build_exeext) $$(C_OBJS)@$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 &@' ../gcc/c/Make-lang.in; \
-		sed -i 's@build/genchecksum$$(build_exeext) $$(CXX_OBJS)@$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 &@' ../gcc/cp/Make-lang.in; \
-		sed -i 's@ac_compiler=\(.*\)@ac_compiler="$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 \1"@' ../libgcc/configure; \
-		sed -i "s@ac_compile='\$$CC\(.*\)@ac_compile=\'$(TEMP_ROOTFS_PREFIX)/bin/gcc \1@" ../libgcc/configure; \
-		sed -i "s@ac_link='\(.*\)@ac_link=\'$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 \1@" ../libgcc/configure; \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make install
-	$(making-end)
-	exit 1
-		#sed -i 's@^CC_FOR_TARGET=\(.*\)@CC_FOR_TARGET=$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 \1@' Makefile; \
-		#--with-system-zlib
-		#sed -i 's@CC=\$$(CC)@CC=$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 \$$(CC)@' x86_64-unknown-linux-gnu/libgcc/Makefile; \
-		#sed -i "s@ac_compile='\(.*\)@ac_compile=\'$(ROOTFS_PREFIX)/lib64/ld-linux-x86-64.so.2 --library-path $(ROOTFS_PREFIX)/lib64 \1@" ../libgcc/configure; \
-		#--target=$(CROSS_COMPILE_TARGET)
-		#--with-local-prefix=$(ROOTFS_PREFIX)
-
-gcc2:
-	@cd $(DIR_WORKING)/$@/$@_build; \
-		make
-	exit 1
-		#sed -i 's@gcc_compile = \$$(gcc_compile_bare)\(.*\)@gcc_compile = $(TEMP_ROOTFS_PREFIX)/bin/gcc -I$(DIR_WORKING)/$@/$@_build/gcc -I$(DIR_WORKING)/$@/gcc -I$(DIR_WORKING)/$@/include -I$(DIR_WORKING)/$@/$@_build/x86_64-unknown-linux-gnu/libgcc \1@' x86_64-unknown-linux-gnu/libgcc/Makefile;
 
 temp_toolchain:
 	make $(addsuffix _pass1, $(addprefix temp_, $(TOOLCHAIN)))

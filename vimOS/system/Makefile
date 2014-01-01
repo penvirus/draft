@@ -24,9 +24,17 @@ TEMP_INSTALL_DIRS := \
 
 BASH := bash-4.2
 COREUTIL := coreutils-8.21
+STRACE := strace-4.8
+NCURSES := ncurses-5.9
+LESS := less-451
+VIM := vim-7.4
 
 PKGS += $(BASH)
 PKGS += $(COREUTIL)
+PKGS += $(STRACE)
+PKGS += $(NCURSES)
+PKGS += $(LESS)
+#PKGS += $(VIM)
 
 all:
 	@mkdir -pv $(TEMP_ROOTFS)
@@ -93,7 +101,68 @@ $(COREUTIL):
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
-		#CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc
+
+$(STRACE):
+	$(making-start)
+	@tar xJf $(DIR_3RD_PARTY)/$(STRACE).tar.xz -C $(DIR_WORKING)
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		../configure \
+		$(INSTALL_DIRS) \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make install
+	$(making-end)
+
+$(NCURSES):
+	$(making-start)
+	@tar zxf $(DIR_3RD_PARTY)/$@.tar.gz -C $(DIR_WORKING)
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		../configure \
+		$(INSTALL_DIRS) \
+		--with-shared \
+		--without-debug \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make install
+	$(making-end)
+
+$(LESS):
+	$(making-start)
+	@tar zxf $(DIR_3RD_PARTY)/$@.tar.gz -C $(DIR_WORKING)
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		LDFLAGS="-L$(ROOTFS_PREFIX)/lib64" \
+		../configure \
+		$(INSTALL_DIRS) \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make install
+	$(making-end)
+
+
+$(VIM):
+	$(making-start)
+	@tar xjf $(DIR_3RD_PARTY)/$@.tar.bz2 -C $(DIR_WORKING)
+	@mv $(DIR_WORKING)/vim74 $(DIR_WORKING)/$@
+	@cd $(DIR_WORKING)/$@; \
+		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		./configure \
+		$(INSTALL_DIRS) \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		make install
+	$(making-end)
 
 clean:
 	make temp_toolchain_clean
