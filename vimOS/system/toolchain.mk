@@ -210,7 +210,3 @@ gcc:
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
-	exit 1
-		#--disable-lto
-		#--disable-libstdc++-v3
-

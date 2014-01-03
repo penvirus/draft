@@ -31,7 +31,7 @@ $(BASH):
 		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
 		$(INSTALL_DIRS) \
-		--host=x86_64-unknown-linux-gnu \
+		--host=$(CROSS_COMPILE_TARGET) \
 		--enable-alias \
 		--enable-arith-for-command \
 		--enable-array-variables \
@@ -61,23 +61,17 @@ $(COREUTIL):
 	@tar xJf $(DIR_3RD_PARTY)/$@.tar.xz -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
 		$(INSTALL_DIRS) \
-		--host=x86_64-unknown-linux-gnu \
-		--disable-silent-rules \
-		--disable-dependency-tracking \
 		--enable-install-program=hostname \
 		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	$(making-end)
 	exit 1
-		#--enable-threads=posix
+
 $(STRACE):
 	$(making-start)
 	@tar xJf $(DIR_3RD_PARTY)/$(STRACE).tar.xz -C $(DIR_WORKING)
