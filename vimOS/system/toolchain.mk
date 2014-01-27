@@ -38,7 +38,9 @@ kernel_header:
 	@cd $(DIR_3RD_PARTY); tar Jxf linux-$(KERNEL_VERSION).tar.xz -C $(DIR_WORKING)
 	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION)/; \
 		make headers_check && \
-		make INSTALL_HDR_PATH=$(ROOTFS_PREFIX) ARCH=x86 headers_install
+		make INSTALL_HDR_PATH=temp_dest ARCH=x86 headers_install
+	@cd $(DIR_WORKING)/linux-$(KERNEL_VERSION)/; \
+		cp -rv temp_dest/include/* $(ROOTFS_PREFIX)/include/
 	$(making-end)
 
 glibc:

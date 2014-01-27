@@ -61,29 +61,39 @@ $(COREUTIL):
 	@tar xJf $(DIR_3RD_PARTY)/$@.tar.xz -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
 		$(INSTALL_DIRS) \
+		--build=x86_64-unknown-linux-gnu \
+		--host=$(CROSS_COMPILE_TARGET) \
 		--enable-install-program=hostname \
 		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
+	    sed -e 's/^#run_help2man\|^run_help2man/#&/' \
+	      -e 's/^\##run_help2man/run_help2man/' -i Makefile
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	$(making-end)
-	exit 1
 
 $(STRACE):
 	$(making-start)
 	@tar xJf $(DIR_3RD_PARTY)/$(STRACE).tar.xz -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
 		$(INSTALL_DIRS) \
+		--host=$(CROSS_COMPILE_TARGET) \
 		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	$(making-end)
 
@@ -92,14 +102,39 @@ $(NCURSES):
 	@tar zxf $(DIR_3RD_PARTY)/$@.tar.gz -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		../configure \
 		$(INSTALL_DIRS) \
+		--build=x86_64-unknown-linux-gnu \
+		--host=$(CROSS_COMPILE_TARGET) \
 		--with-shared \
 		--without-debug \
+		--with-termlib \
+		--with-ticlib \
+		--enable-widec \
 		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
+		make install
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
+		../configure \
+		$(INSTALL_DIRS) \
+		--build=x86_64-unknown-linux-gnu \
+		--host=$(CROSS_COMPILE_TARGET) \
+		--with-shared \
+		--without-debug \
+		--with-termlib \
+		--with-ticlib \
+		--disable-nls
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@/$@_build; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	$(making-end)
 
@@ -108,29 +143,52 @@ $(LESS):
 	@tar zxf $(DIR_3RD_PARTY)/$@.tar.gz -C $(DIR_WORKING)
 	@mkdir -pv $(DIR_WORKING)/$@/$@_build
 	@cd $(DIR_WORKING)/$@/$@_build; \
-		LDFLAGS="-L$(ROOTFS_PREFIX)/lib64" \
+		CC="$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc --sysroot=$(ROOTFS)" \
 		../configure \
 		$(INSTALL_DIRS) \
+		--build=x86_64-unknown-linux-gnu \
+		--host=$(CROSS_COMPILE_TARGET) \
 		--disable-nls
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make $(MAKE_FLAGS)
 	@cd $(DIR_WORKING)/$@/$@_build; \
 		make install
 	$(making-end)
-
+		    
 $(VIM):
 	$(making-start)
 	@tar xjf $(DIR_3RD_PARTY)/$@.tar.bz2 -C $(DIR_WORKING)
 	@mv $(DIR_WORKING)/vim74 $(DIR_WORKING)/$@
 	@cd $(DIR_WORKING)/$@; \
-		CC=$(TEMP_ROOTFS_PREFIX)/bin/gcc \
+		CC="$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc --sysroot=$(ROOTFS)" \
+		LDFLAGS="-L$(ROOTFS_PREFIX)/lib64" \
+		vim_cv_getcwd_broken=no \
+		vim_cv_memmove_handles_overlap=yes \
+		vim_cv_stat_ignores_slash=no \
+		vim_cv_terminfo=yes \
+		vim_cv_toupper_broken=no \
+		vim_cv_tty_group=world \
 		./configure \
 		$(INSTALL_DIRS) \
+		--build=x86_64-unknown-linux-gnu \
+		--host=$(CROSS_COMPILE_TARGET) \
+		--with-local-dir=$(ROOTFS_PREFIX) \
+		--enable-multibyte \
+		--enable-gui=no \
+		--disable-gtktest \
+		--disable-xim \
+		--with-features=normal \
+		--disable-gpm \
+		--without-x \
+		--disable-netbeans \
 		--disable-nls
-	@cd $(DIR_WORKING)/$@/$@_build; \
+	@cd $(DIR_WORKING)/$@; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make $(MAKE_FLAGS)
-	@cd $(DIR_WORKING)/$@/$@_build; \
+	@cd $(DIR_WORKING)/$@; \
+		PATH=$(TEMP_ROOTFS_PREFIX)/bin:$${PATH} \
 		make install
 	$(making-end)
-
+	exit 1
+		#--with-tlib=ncurses
 
