@@ -43,7 +43,6 @@ set termencoding=utf-8
 set ambiwidth=double
 
 if has("win32") || has("win64")
-    " Set language (I like to use English)
     language english
 endif
 
@@ -52,9 +51,6 @@ endif
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Favorite file types
 set fileformats=unix,dos,mac
-
-nmap <LEADER>fd :set fileformat=dos<CR>
-nmap <LEADER>fu :set fileformat=unix<CR>
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " FileType
@@ -151,13 +147,14 @@ syntax enable
         if &term == "xterm-color" || &term == "xterm-16color"
             " Set the color level
             set t_Co=16
-            colorscheme yzlin
+            colorscheme vimos
         else
             " Set the color level
             set t_Co=256
-            colorscheme yzlin256
+            colorscheme vimos256
         endif
     endif
+    nmap <LEADER>r :colorscheme vimos256<CR>
 
     """"""""""""""""""""""""""""""
     " Cursor line
@@ -199,8 +196,11 @@ set hlsearch
 set wrapscan
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Moving around and tabs
+" Moving around and window and tabs
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Window configuration
+nnoremap <LEADER>h <C-W>h
+nnoremap <LEADER>l <C-W>l
 " Tab configuration
 nmap <LEADER>tc :tabnew<CR>
 nmap <LEADER>te :tabedit<SPACE>
@@ -219,11 +219,6 @@ function! SwitchLastUsedTab()
     endif
 endfunction
 nmap tt :call SwitchLastUsedTab()<CR>
-
-" Fast tab moving
-for i in range(0, 9)
-    execute "nmap <ESC>" . i . " :tabnext " . (i + 1) . "<CR>"
-endfor
 
 set switchbuf=usetab
 
@@ -264,23 +259,13 @@ endfunction
 if !has("gui_running")
     " Customized tabline
     set tabline=%!TabLine()
-
-    if &term == "xterm-color" || &term == "xterm-16color"
-        hi TabLine      cterm=NONE      ctermfg=grey      ctermbg=darkgrey
-        hi TabLineFill  cterm=NONE      ctermfg=grey      ctermbg=darkgrey
-        hi TabLineSel   cterm=NONE      ctermfg=grey      ctermbg=blue
-    else
-        hi TabLine      cterm=NONE      ctermfg=fg      ctermbg=236
-        hi TabLineFill  cterm=NONE      ctermfg=fg      ctermbg=236
-        hi TabLineSel   cterm=NONE      ctermfg=fg      ctermbg=64
-    endif
 endif
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " General Abbrevs
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Comment for C like languages
-autocmd BufNewFile,BufRead *.js,*.htc,*.c,*.tmpl,*.css inoremap $c /**<CR>  **/<ESC>O
+"autocmd BufNewFile,BufRead *.js,*.htc,*.c,*.tmpl,*.css inoremap $c /**<CR>  **/<ESC>O
 
 " Bash like
 cnoremap <C-B> <HOME>
@@ -307,7 +292,7 @@ set foldmethod=syntax
 set foldlevel=200
 
 " 3 lines of column for fold showing, always
-set foldcolumn=3
+set foldcolumn=5
 
 " Easily open and close folds
 nnoremap <SPACE> za
@@ -406,12 +391,12 @@ nnoremap <LEADER>q :QFix<CR>
         "set cscopequickfix=s-,g-,c-,d-,t-,e-,f-,i-
 
         " add any database in current directory
-        if filereadable("cscope.out")
-            cs add cscope.out
+        "if filereadable("cscope.out")
+        "    cs add cscope.out
         " else add database pointed to by environment
-        elseif $CSCOPE_DB != ""
-            cs add $CSCOPE_DB
-        endif
+        "elseif $CSCOPE_DB != ""
+        "    cs add $CSCOPE_DB
+        "endif
     endif
 
     """"""""""""""""""""""""""""""
@@ -519,6 +504,18 @@ augroup cplusplus
         syntax match ErrorLeadSpace /^ \+/      " highlight any leading spaces
         syntax match ErrorTailSpace / \+$/      " highlight any trailing spaces
         "match Error80               /\%>80v.\+/ " highlight anything past 80 in red
+	
+	if has("cscope")
+	    nmap <LEADER>s :cs find s <C-R>=expand("<cword>")<CR><CR>	
+	    nmap <LEADER>g :cs find g <C-R>=expand("<cword>")<CR><CR>	
+	    nmap <LEADER>c :cs find c <C-R>=expand("<cword>")<CR><CR>	
+	    nmap <LEADER>t :cs find t <C-R>=expand("<cword>")<CR><CR>	
+	    nmap <LEADER>e :cs find e <C-R>=expand("<cword>")<CR><CR>	
+	    nmap <LEADER>f :cs find f <C-R>=expand("<cfile>")<CR><CR>	
+	    nmap <LEADER>i :cs find i ^<C-R>=expand("<cfile>")<CR>$<CR>
+	    nmap <LEADER>d :cs find d <C-R>=expand("<cword>")<CR><CR>	
+	endif
+
 
         " Support more C-related types
         syntax keyword cType uint ubyte ulong uint64_t uint32_t uint16_t uint8_t boolean_t int64_t int32_t int16_t int8_t u_int64_t u_int32_t u_int16_t u_int8_t
@@ -624,69 +621,10 @@ augroup python
         nnoremap <F4> :call NextPythonQuickfix()<CR>
 	"TlistToggle
 
-        highlight CursorLine cterm=NONE ctermbg=240
         highlight OverLength ctermbg=red ctermfg=white
         match OverLength /\%81v.\+/
     endfunction
     autocmd FileType python call _python()
-augroup END
-
-augroup make
-    autocmd!
-    function! _make()
-	set foldmethod=indent
-    endfunction
-    autocmd FileType make call _make()
-augroup END
-
-" Perl
-augroup perl
-    autocmd!
-    function! _perl()
-        set shiftwidth=4
-        set softtabstop=4
-        set tabstop=4
-        set expandtab
-
-        " indent by perltidy
-        if executable("/usr/local/bin/perltidy")
-            set equalprg=perltidy
-        endif
-    endfunction
-    autocmd FileType perl call _perl()
-augroup END
-
-" PHP
-" Highlight SQL syntax in string
-let php_sql_query=1
-
-" Highlight HTML in string
-let php_htmlInStrings=1
-
-" Disable short tags
-let php_noShortTags=1
-
-" Folding for classes & functions
-let php_folding=1
-augroup php
-    autocmd!
-    function! _php()
-        set shiftwidth=4
-        set softtabstop=4
-        set tabstop=4
-        set makeprg=php\ -l\ %
-        set errorformat=%m\ in\ %f\ on\ line\ %l
-
-        " None of these should be word dividers, so make them not be
-        set iskeyword+=_,@,#
-
-        nmap <silent> <F12>
-            \ :!exctags -f %:p:h/tags
-            \ --langmap="php:+.inc"
-            \ -h ".php.inc" -R --totals=yes
-            \ --tag-relative=yes --PHP-kinds=+cf-v %:p:h<CR>
-    endfunction
-    autocmd FileType php call _php()
 augroup END
 
 " shell script
