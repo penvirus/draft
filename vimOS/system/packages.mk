@@ -4,6 +4,7 @@ STRACE := strace-4.8
 NCURSES := ncurses-5.9
 LESS := less-451
 VIM := vim-7.4
+#NET_TOOLS := net-tools-1.60
 
 PKGS += $(BASH)
 PKGS += $(COREUTIL)
@@ -11,6 +12,7 @@ PKGS += $(STRACE)
 PKGS += $(NCURSES)
 PKGS += $(LESS)
 #PKGS += $(VIM)
+#PKGS += $(NET_TOOLS)
 
 packages:
 	@install -m 775 init $(ROOTFS)
@@ -192,3 +194,19 @@ $(VIM):
 	exit 1
 		#--with-tlib=ncurses
 
+$(NET_TOOLS):
+	$(making-start)
+	@tar jxf $(DIR_3RD_PARTY)/$@.tar.bz2 -C $(DIR_WORKING)
+	@mkdir -pv $(DIR_WORKING)/$@/$@_build
+	@cp -v config/net_tools_config_h $(DIR_WORKING)/$@/config.h
+	@cd $(DIR_WORKING)/$@; \
+		sed -i '107d' lib/inet_sr.c; \
+		sed -i '80d;100d;119d;176d;331d;' hostname.c;
+	@cd $(DIR_WORKING)/$@; \
+		CC="$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc --sysroot=$(ROOTFS)" \
+		make $(MAKE_FLAGS)
+	@cd $(DIR_WORKING)/$@; \
+		CC="$(TEMP_ROOTFS_PREFIX)/bin/$(CROSS_COMPILE_TARGET)-gcc --sysroot=$(ROOTFS)" \
+		make install
+	$(making-end)
+	exit 1
