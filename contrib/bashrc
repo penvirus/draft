@@ -18,3 +18,10 @@ PS1="\[\033[1;32m\]\H\[\033[0m\]"
 PS1="$PS1 \[\033[1;34m\]\W\[\033[0m\]"
 PS1="$PS1 \[\033[1;31m\]-\u- (=^_^=)\[\033[0m\] "
 export PS1
+
+cm ()
+{
+	    curl -s -o - http://whatthecommit.com/ | sed -n '/<p>.*/p' | cut -d'>' -f2
+}
+
+export LC_ALL="en_US.UTF-8"
